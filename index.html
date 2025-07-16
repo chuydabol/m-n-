@@ -14,7 +14,19 @@
 
     h1 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 10px;
+    }
+
+    #toggleProjection {
+      display: block;
+      margin: 0 auto 30px auto;
+      padding: 10px 20px;
+      font-size: 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
 
     .container {
@@ -28,7 +40,7 @@
       color: white;
       border-radius: 10px;
       width: 300px;
-      height: 470px;
+      height: 480px;
       position: relative;
       background-size: cover;
       background-position: center;
@@ -106,10 +118,14 @@
 </head>
 <body>
   <h1>Pro Clubs Player Stats</h1>
+  <button id="toggleProjection">🔮 Show Projections</button>
   <div class="container" id="player-container"></div>
   <footer id="footer"></footer>
 
   <script>
+    let projectionMode = false;
+    let players = [];
+
     async function fetchPlayerStats() {
       try {
         const res = await fetch('/api/players');
@@ -125,8 +141,10 @@
           "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
         };
 
-        const players = data.members.map(player => {
+        players = data.members.map(player => {
           const games = player.gamesPlayed || 1;
+          const goals = player.goals || 0;
+          const assists = player.assists || 0;
           return {
             username: player.name,
             proName: player.proName || player.name,
@@ -134,19 +152,18 @@
             role: player.favoritePosition || "Forward",
             image: imageMap[player.name] || '',
             stats: {
-              games: games,
+              games,
               winRate: player.winRate,
-              goals: Number(player.goals),
-              assists: Number(player.assists),
+              goals,
+              assists,
+              rating: parseFloat(player.ratingAve) || 0,
               shotSuccess: player.shotSuccessRate,
               passes: `${player.passesMade} (${player.passSuccessRate}%)`,
-              rating: parseFloat(player.ratingAve),
               tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
             }
           };
         });
 
-        // 🏆 Determine Awards using numeric comparison
         const topRatingPlayer = players.reduce((top, p) => p.stats.rating > top.stats.rating ? p : top, players[0]);
         const topScorer = players.reduce((top, p) => p.stats.goals > top.stats.goals ? p : top, players[0]);
         const topAssister = players.reduce((top, p) => p.stats.assists > top.stats.assists ? p : top, players[0]);
@@ -155,6 +172,7 @@
 
         const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
         const container = document.getElementById("player-container");
+        container.innerHTML = "";
 
         players.forEach((player, index) => {
           roleCount[player.role] = (roleCount[player.role] || 0) + 1;
@@ -164,10 +182,12 @@
           if (player.username === topScorer.username) awards.push('⚽ Golden Boot');
           if (player.username === topAssister.username) awards.push('🎯 Playmaker Award');
 
+          const projectedGoals = ((player.stats.goals / player.stats.games) * 500).toFixed(0);
+          const projectedAssists = ((player.stats.assists / player.stats.games) * 500).toFixed(0);
+
           const card = document.createElement("div");
           card.className = "card";
           card.style.backgroundImage = `url('${player.image}')`;
-
           card.innerHTML = `
             <div class="overlay">
               <div class="rank">${index + 1}</div>
@@ -175,13 +195,14 @@
               ${awards.map(a => `<span class="motm">${a}</span>`).join('<br>')}
               <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
               <div class="stats">
-                <p>Games Played: ${player.stats.games}</p>
+                <p>Games Played: <span class="count">${player.stats.games}</span></p>
                 <p>Win Rate: ${player.stats.winRate}%</p>
-                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+                <p class="goals-assists">Goals: <span class="count">${player.stats.goals}</span> | Assists: <span class="count">${player.stats.assists}</span></p>
                 <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
                 <p>Passes: ${player.stats.passes}</p>
                 <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
               </div>
+              <input type="hidden" class="projections" value="${projectedGoals},${projectedAssists}">
             </div>
           `;
           container.appendChild(card);
@@ -190,11 +211,28 @@
         document.getElementById("footer").innerText =
           `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
       } catch (err) {
-        const container = document.getElementById("player-container");
-        if (container) container.innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
-        console.error('Error fetching data:', err);
+        document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
+        console.error(err);
       }
     }
+
+    document.getElementById("toggleProjection").addEventListener("click", () => {
+      projectionMode = !projectionMode;
+      const button = document.getElementById("toggleProjection");
+      const cards = document.querySelectorAll(".card");
+      cards.forEach(card => {
+        const proj = card.querySelector(".projections").value.split(",");
+        const goalsAssistsEl = card.querySelector(".goals-assists");
+        if (projectionMode) {
+          goalsAssistsEl.innerHTML = `Projected Goals: <span class="count">${proj[0]}</span> | Projected Assists: <span class="count">${proj[1]}</span>`;
+        } else {
+          const realGoals = goalsAssistsEl.getAttribute("data-real-goals");
+          const realAssists = goalsAssistsEl.getAttribute("data-real-assists");
+          goalsAssistsEl.innerHTML = `Goals: <span class="count">${realGoals}</span> | Assists: <span class="count">${realAssists}</span>`;
+        }
+      });
+      button.innerText = projectionMode ? "📊 Show Real Stats" : "🔮 Show Projections";
+    });
 
     document.addEventListener("DOMContentLoaded", fetchPlayerStats);
   </script>
