@@ -28,7 +28,7 @@
       color: white;
       border-radius: 10px;
       width: 300px;
-      height: 430px;
+      height: 400px;
       position: relative;
       background-size: cover;
       background-position: center;
@@ -51,6 +51,7 @@
 
     .overlay h2 {
       margin: 0;
+      font-size: 18px;
     }
 
     .badge {
@@ -59,19 +60,7 @@
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 12px;
-      margin-left: 8px;
-    }
-
-    .motm {
-      background: gold;
-      color: black;
-      font-weight: bold;
-      padding: 4px 8px;
-      border-radius: 8px;
-      margin-top: 6px;
-      font-size: 14px;
-      display: inline-block;
-      box-shadow: 0 0 5px rgba(255, 215, 0, 0.6);
+      margin-left: 6px;
     }
 
     .stats {
@@ -110,83 +99,152 @@
   <footer id="footer"></footer>
 
   <script>
-    async function fetchPlayerStats() {
-      try {
-        const res = await fetch('/api/players');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-
-        const imageMap = {
-          "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
-          "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
-          "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
-          "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
-          "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
-          "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
-        };
-
-        const players = data.members.map(player => ({
-          username: player.name,
-          proName: player.proName || player.name,
-          ovr: player.proOverall || 0,
-          role: player.favoritePosition || "Forward",
-          image: imageMap[player.name] || '',
-          stats: {
-            games: player.gamesPlayed,
-            winRate: player.winRate,
-            goals: player.goals,
-            assists: player.assists,
-            shotSuccess: player.shotSuccessRate,
-            passes: `${player.passesMade} (${player.passSuccessRate}%)`,
-            rating: parseFloat(player.ratingAve),
-            tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
-          }
-        }));
-
-        players.sort((a, b) => b.stats.rating - a.stats.rating);
-        const topPlayer = players[0]?.username;
-
-        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
-        const container = document.getElementById("player-container");
-
-        players.forEach((player, index) => {
-          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
-          const isTopPlayer = player.username === topPlayer;
-
-          const card = document.createElement("div");
-          card.className = "card";
-          card.style.backgroundImage = `url('${player.image}')`;
-
-          card.innerHTML = `
-            <div class="overlay">
-              <div class="rank">${index + 1}</div>
-              <h2>${player.username} <span class="badge">${player.role}</span></h2>
-              ${isTopPlayer ? '<span class="motm">🏅 Player of the Match</span>' : ''}
-              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
-              <div class="stats">
-                <p>Games Played: ${player.stats.games}</p>
-                <p>Win Rate: ${player.stats.winRate}%</p>
-                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
-                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
-                <p>Passes: ${player.stats.passes}</p>
-                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
-              </div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-
-        document.getElementById("footer").innerText =
-          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
-      } catch (err) {
-        document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
-        console.error('Error fetching data:', err);
+    const players = [
+      {
+        username: "ChuyLeal133",
+        proName: "Chuyito",
+        ovr: 90,
+        role: "Forward",
+        image: "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+        stats: {
+          games: 208,
+          winRate: 48,
+          goals: 176,
+          assists: 259,
+          shotSuccess: 21,
+          passes: "3451 (71%)",
+          rating: 8.7,
+          tackles: "165 (13%)"
+        }
+      },
+      {
+        username: "therealmandem7",
+        proName: "S. Balmane",
+        ovr: 86,
+        role: "Forward",
+        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+        stats: {
+          games: 42,
+          winRate: 45,
+          goals: 47,
+          assists: 24,
+          shotSuccess: 28,
+          passes: "506 (73%)",
+          rating: 8.3,
+          tackles: "28 (13%)"
+        }
+      },
+      {
+        username: "LB_coyote2026",
+        proName: "Dblendz1",
+        ovr: 89,
+        role: "Forward",
+        image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+        stats: {
+          games: 170,
+          winRate: 44,
+          goals: 202,
+          assists: 78,
+          shotSuccess: 33,
+          passes: "2063 (82%)",
+          rating: 8.3,
+          tackles: "117 (9%)"
+        }
+      },
+      {
+        username: "ElWey_10",
+        proName: "Luizinho",
+        ovr: 90,
+        role: "Midfielder",
+        image: "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+        stats: {
+          games: 272,
+          winRate: 47,
+          goals: 240,
+          assists: 209,
+          shotSuccess: 32,
+          passes: "4023 (78%)",
+          rating: 8.2,
+          tackles: "280 (15%)"
+        }
+      },
+      {
+        username: "MauryLeal11",
+        proName: "Maury",
+        ovr: 90,
+        role: "Midfielder",
+        image: "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+        stats: {
+          games: 42,
+          winRate: 45,
+          goals: 29,
+          assists: 18,
+          shotSuccess: 25,
+          passes: "362 (77%)",
+          rating: 7.8,
+          tackles: "11 (5%)"
+        }
+      },
+      {
+        username: "RC-_-Wheelie",
+        proName: "Rosas",
+        ovr: 82,
+        role: "Forward",
+        image: "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646",
+        stats: {
+          games: 3,
+          winRate: 66,
+          goals: 2,
+          assists: 1,
+          shotSuccess: 50,
+          passes: "15 (71%)",
+          rating: 6.3,
+          tackles: "1 (16%)"
+        }
       }
-    }
+    ];
 
-    fetchPlayerStats();
+    const topRated = players.reduce((max, p) => p.stats.rating > max.stats.rating ? p : max, players[0]);
+    const topScorer = players.reduce((max, p) => p.stats.goals > max.stats.goals ? p : max, players[0]);
+    const topAssister = players.reduce((max, p) => p.stats.assists > max.stats.assists ? p : max, players[0]);
+
+    players.sort((a, b) => b.stats.rating - a.stats.rating);
+
+    const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+    const container = document.getElementById("player-container");
+
+    players.forEach((player, index) => {
+      roleCount[player.role]++;
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.backgroundImage = `url('${player.image}')`;
+
+      card.innerHTML = `
+        <div class="overlay">
+          <div class="rank">${index + 1}</div>
+          <h2>
+            ${player.username}
+            <span class="badge">${player.role}</span>
+            ${player.username === topRated.username ? '<span class="badge" style="background-color: gold;">Player of the Season</span>' : ''}
+            ${player.username === topScorer.username ? '<span class="badge" style="background-color: orange;">Golden Boot</span>' : ''}
+            ${player.username === topAssister.username ? '<span class="badge" style="background-color: #1abc9c;">Playmaker Award</span>' : ''}
+          </h2>
+          <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+          <div class="stats">
+            <p>Games Played: ${player.stats.games}</p>
+            <p>Win Rate: ${player.stats.winRate}%</p>
+            <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+            <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+            <p>Passes: ${player.stats.passes}</p>
+            <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    document.getElementById("footer").innerText =
+      `Total Midfielders: ${roleCount.Midfielder} | Forwards: ${roleCount.Forward} | Defenders: ${roleCount.Defender} | Goalkeepers: ${roleCount.Goalkeeper}`;
   </script>
 </body>
 </html>
-
-\
