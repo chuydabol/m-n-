@@ -28,12 +28,13 @@
       color: white;
       border-radius: 10px;
       width: 300px;
-      height: 430px;
+      height: 460px;
       position: relative;
       background-size: cover;
       background-position: center;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       overflow: hidden;
+      padding-bottom: 40px; /* space for badges */
     }
 
     .overlay {
@@ -64,16 +65,26 @@
 
     .award {
       display: inline-block;
+      margin-top: 6px;
+      margin-right: 6px;
       padding: 4px 8px;
       border-radius: 8px;
-      margin-top: 6px;
-      font-size: 14px;
       font-weight: bold;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      font-size: 13px;
+      box-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
     }
-    .player-season { background: gold; color: black; box-shadow: 0 0 8px gold; }
-    .golden-boot { background: orange; color: black; box-shadow: 0 0 8px orange; }
-    .playmaker { background: #1abc9c; color: white; box-shadow: 0 0 8px #1abc9c; }
+    .player-season {
+      background-color: gold;
+      color: black;
+    }
+    .golden-boot {
+      background-color: orange;
+      color: white;
+    }
+    .playmaker {
+      background-color: #1e90ff;
+      color: white;
+    }
 
     .stats {
       margin-top: 15px;
@@ -126,6 +137,7 @@
           "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
         };
 
+        // Map players
         const players = data.members.map(player => ({
           username: player.name,
           proName: player.proName || player.name,
@@ -135,8 +147,8 @@
           stats: {
             games: player.gamesPlayed,
             winRate: player.winRate,
-            goals: player.goals,
-            assists: player.assists,
+            goals: Number(player.goals) || 0,
+            assists: Number(player.assists) || 0,
             shotSuccess: player.shotSuccessRate,
             passes: `${player.passesMade} (${player.passSuccessRate}%)`,
             rating: parseFloat(player.ratingAve),
@@ -144,33 +156,52 @@
           }
         }));
 
-        // Determine award winners
+        // Sort by rating descending
         players.sort((a, b) => b.stats.rating - a.stats.rating);
-        const playerOfSeason = players[0]?.username || null;
-        const goldenBoot = players.reduce((max, p) => p.stats.goals > max.stats.goals ? p : max, players[0])?.username || null;
-        const playmaker = players.reduce((max, p) => p.stats.assists > max.stats.assists ? p : max, players[0])?.username || null;
 
+        // Find Player of the Season (highest rating)
+        const playerOfSeason = players[0]?.username || null;
+
+        // Find Golden Boot (top goals)
+        let goldenBootPlayer = players[0];
+        for (const p of players) {
+          if (p.stats.goals > goldenBootPlayer.stats.goals) goldenBootPlayer = p;
+        }
+        const goldenBoot = goldenBootPlayer.username;
+
+        // Find Playmaker Award (top assists)
+        let playmakerPlayer = players[0];
+        for (const p of players) {
+          if (p.stats.assists > playmakerPlayer.stats.assists) playmakerPlayer = p;
+        }
+        const playmaker = playmakerPlayer.username;
+
+        // Debug log awards
+        console.log('Player of the Season:', playerOfSeason);
+        console.log('Golden Boot:', goldenBoot);
+        console.log('Playmaker:', playmaker);
+
+        // Count roles
         const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
         const container = document.getElementById("player-container");
-        container.innerHTML = '';
+        container.innerHTML = ''; // Clear previous content
 
         players.forEach((player, index) => {
           roleCount[player.role] = (roleCount[player.role] || 0) + 1;
 
+          const awards = [];
+          if (player.username === playerOfSeason) awards.push('<span class="award player-season">🏆 Player of the Season</span>');
+          if (player.username === goldenBoot) awards.push('<span class="award golden-boot">🥇 Golden Boot</span>');
+          if (player.username === playmaker) awards.push('<span class="award playmaker">🎯 Playmaker Award</span>');
+
           const card = document.createElement("div");
           card.className = "card";
           card.style.backgroundImage = `url('${player.image}')`;
-
-          let awardsHtml = '';
-          if (player.username === playerOfSeason) awardsHtml += `<span class="award player-season">🏆 Player of the Season</span>`;
-          if (player.username === goldenBoot) awardsHtml += `<span class="award golden-boot">🥇 Golden Boot</span>`;
-          if (player.username === playmaker) awardsHtml += `<span class="award playmaker">🎯 Playmaker Award</span>`;
-
           card.innerHTML = `
             <div class="overlay">
               <div class="rank">${index + 1}</div>
               <h2>${player.username} <span class="badge">${player.role}</span></h2>
-              ${awardsHtml}
+              ${awards.join(' ')}
               <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
               <div class="stats">
                 <p>Games Played: ${player.stats.games}</p>
