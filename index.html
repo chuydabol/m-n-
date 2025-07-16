@@ -134,8 +134,8 @@
           stats: {
             games: player.gamesPlayed,
             winRate: player.winRate,
-            goals: player.goals,
-            assists: player.assists,
+            goals: parseFloat(player.goals),
+            assists: parseFloat(player.assists),
             shotSuccess: player.shotSuccessRate,
             passes: `${player.passesMade} (${player.passSuccessRate}%)`,
             rating: parseFloat(player.ratingAve),
@@ -143,10 +143,15 @@
           }
         }));
 
-        // 🏆 Determine Awards
-        const topRatingPlayer = players.reduce((top, p) => p.stats.rating > top.stats.rating ? p : top, players[0]);
-        const topScorer = players.reduce((top, p) => p.stats.goals > top.stats.goals ? p : top, players[0]);
-        const topAssister = players.reduce((top, p) => p.stats.assists > top.stats.assists ? p : top, players[0]);
+        // 🏆 Determine Awards — force numerical comparisons
+        const topRatingPlayer = players.reduce((top, p) =>
+          p.stats.rating > top.stats.rating ? p : top, players[0]);
+
+        const topScorer = players.reduce((top, p) =>
+          p.stats.goals > top.stats.goals ? p : top, players[0]);
+
+        const topAssister = players.reduce((top, p) =>
+          p.stats.assists > top.stats.assists ? p : top, players[0]);
 
         players.sort((a, b) => b.stats.rating - a.stats.rating);
 
@@ -214,7 +219,6 @@
       });
     }
 
-    // ✅ Run once DOM is ready
     document.addEventListener("DOMContentLoaded", fetchPlayerStats);
   </script>
 </body>
