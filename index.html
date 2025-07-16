@@ -1,106 +1,221 @@
-<script>
-  async function fetchPlayerStats() {
-    try {
-      const res = await fetch('/api/players');
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-
-      const imageMap = {
-        "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
-        "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
-        "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
-        "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
-        "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
-        "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
-      };
-
-      const players = data.members.map(player => ({
-        username: player.name,
-        proName: player.proName || player.name,
-        ovr: player.proOverall || 0,
-        role: player.favoritePosition || "Forward",
-        image: imageMap[player.name] || '',
-        stats: {
-          games: player.gamesPlayed,
-          winRate: player.winRate,
-          goals: player.goals,
-          assists: player.assists,
-          shotSuccess: player.shotSuccessRate,
-          passes: `${player.passesMade} (${player.passSuccessRate}%)`,
-          rating: parseFloat(player.ratingAve),
-          tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
-        }
-      }));
-
-      // Determine award winners
-      const topRatingPlayer = players.reduce((top, p) => p.stats.rating > top.stats.rating ? p : top, players[0]);
-      const topScorer = players.reduce((top, p) => p.stats.goals > top.stats.goals ? p : top, players[0]);
-      const topAssister = players.reduce((top, p) => p.stats.assists > top.stats.assists ? p : top, players[0]);
-
-      players.sort((a, b) => b.stats.rating - a.stats.rating);
-
-      const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
-      const container = document.getElementById("player-container");
-
-      players.forEach((player, index) => {
-        roleCount[player.role] = (roleCount[player.role] || 0) + 1;
-
-        const awards = [];
-        if (player.username === topRatingPlayer.username) awards.push('🏅 Player of the Season');
-        if (player.username === topScorer.username) awards.push('⚽ Golden Boot');
-        if (player.username === topAssister.username) awards.push('🎯 Playmaker Award');
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.style.backgroundImage = `url('${player.image}')`;
-
-        card.innerHTML = `
-          <div class="overlay">
-            <div class="rank">${index + 1}</div>
-            <h2>${player.username} <span class="badge">${player.role}</span></h2>
-            ${awards.map(a => `<span class="motm">${a}</span>`).join('<br>')}
-            <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
-            <div class="stats">
-              <p>Games Played: <span class="count" data-target="${player.stats.games}">0</span></p>
-              <p>Win Rate: <span class="count" data-target="${player.stats.winRate}">0</span>%</p>
-              <p>Goals: <span class="count" data-target="${player.stats.goals}">0</span> | Assists: <span class="count" data-target="${player.stats.assists}">0</span></p>
-              <p>Shot Success Rate: <span class="count" data-target="${player.stats.shotSuccess}">0</span>%</p>
-              <p>Passes: <span>${player.stats.passes}</span></p>
-              <p>Rating: <span class="count" data-target="${player.stats.rating}">0</span> | Tackles: <span>${player.stats.tackles}</span></p>
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-
-      document.getElementById("footer").innerText =
-        `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
-
-      animateCounters();
-    } catch (err) {
-      document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
-      console.error('Error fetching data:', err);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pro Club Stats</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      margin: 0;
+      padding: 20px;
     }
-  }
 
-  function animateCounters() {
-    const counters = document.querySelectorAll('.count');
-    counters.forEach(counter => {
-      const update = () => {
-        const target = parseFloat(counter.getAttribute('data-target'));
-        const current = parseFloat(counter.innerText);
-        const increment = target / 50;
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-        if (current < target) {
-          counter.innerText = (current + increment).toFixed(1);
-          setTimeout(update, 20);
-        } else {
-          counter.innerText = target % 1 === 0 ? target.toFixed(0) : target.toFixed(1);
-        }
-      };
-      update();
-    });
-  }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
 
-  fetchPlayerStats();
-</script>
+    .card {
+      color: white;
+      border-radius: 10px;
+      width: 300px;
+      height: 460px;
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .overlay h2 {
+      margin: 0;
+    }
+
+    .badge {
+      background-color: #007bff;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+
+    .motm {
+      background: gold;
+      color: black;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 8px;
+      margin-top: 6px;
+      font-size: 14px;
+      display: inline-block;
+      box-shadow: 0 0 5px rgba(255, 215, 0, 0.6);
+    }
+
+    .stats {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .stats p {
+      margin: 4px 0;
+    }
+
+    .rank {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: gold;
+      color: black;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 50%;
+      font-size: 16px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pro Clubs Player Stats</h1>
+  <div class="container" id="player-container"></div>
+  <footer id="footer"></footer>
+
+  <script>
+    async function fetchPlayerStats() {
+      try {
+        const res = await fetch('/api/players');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+
+        const imageMap = {
+          "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+          "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+          "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+          "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+          "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+          "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
+        };
+
+        const players = data.members.map(player => ({
+          username: player.name,
+          proName: player.proName || player.name,
+          ovr: player.proOverall || 0,
+          role: player.favoritePosition || "Forward",
+          image: imageMap[player.name] || '',
+          stats: {
+            games: player.gamesPlayed,
+            winRate: player.winRate,
+            goals: player.goals,
+            assists: player.assists,
+            shotSuccess: player.shotSuccessRate,
+            passes: `${player.passesMade} (${player.passSuccessRate}%)`,
+            rating: parseFloat(player.ratingAve),
+            tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
+          }
+        }));
+
+        // 🏆 Determine Awards
+        const topRatingPlayer = players.reduce((top, p) => p.stats.rating > top.stats.rating ? p : top, players[0]);
+        const topScorer = players.reduce((top, p) => p.stats.goals > top.stats.goals ? p : top, players[0]);
+        const topAssister = players.reduce((top, p) => p.stats.assists > top.stats.assists ? p : top, players[0]);
+
+        players.sort((a, b) => b.stats.rating - a.stats.rating);
+
+        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+        const container = document.getElementById("player-container");
+
+        players.forEach((player, index) => {
+          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
+
+          const awards = [];
+          if (player.username === topRatingPlayer.username) awards.push('🏅 Player of the Season');
+          if (player.username === topScorer.username) awards.push('⚽ Golden Boot');
+          if (player.username === topAssister.username) awards.push('🎯 Playmaker Award');
+
+          const card = document.createElement("div");
+          card.className = "card";
+          card.style.backgroundImage = `url('${player.image}')`;
+
+          card.innerHTML = `
+            <div class="overlay">
+              <div class="rank">${index + 1}</div>
+              <h2>${player.username} <span class="badge">${player.role}</span></h2>
+              ${awards.map(a => `<span class="motm">${a}</span>`).join('<br>')}
+              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+              <div class="stats">
+                <p>Games Played: <span class="count" data-target="${player.stats.games}">0</span></p>
+                <p>Win Rate: <span class="count" data-target="${player.stats.winRate}">0</span>%</p>
+                <p>Goals: <span class="count" data-target="${player.stats.goals}">0</span> | Assists: <span class="count" data-target="${player.stats.assists}">0</span></p>
+                <p>Shot Success Rate: <span class="count" data-target="${player.stats.shotSuccess}">0</span>%</p>
+                <p>Passes: <span>${player.stats.passes}</span></p>
+                <p>Rating: <span class="count" data-target="${player.stats.rating}">0</span> | Tackles: <span>${player.stats.tackles}</span></p>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+        document.getElementById("footer").innerText =
+          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+
+        animateCounters();
+      } catch (err) {
+        const container = document.getElementById("player-container");
+        if (container) container.innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
+        console.error('Error fetching data:', err);
+      }
+    }
+
+    function animateCounters() {
+      const counters = document.querySelectorAll('.count');
+      counters.forEach(counter => {
+        const update = () => {
+          const target = parseFloat(counter.getAttribute('data-target'));
+          const current = parseFloat(counter.innerText) || 0;
+          const increment = target / 50;
+
+          if (current < target) {
+            counter.innerText = (current + increment).toFixed(1);
+            setTimeout(update, 20);
+          } else {
+            counter.innerText = target % 1 === 0 ? target.toFixed(0) : target.toFixed(1);
+          }
+        };
+        update();
+      });
+    }
+
+    // ✅ Run once DOM is ready
+    document.addEventListener("DOMContentLoaded", fetchPlayerStats);
+  </script>
+</body>
+</html>
