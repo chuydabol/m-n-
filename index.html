@@ -34,7 +34,6 @@
       background-position: center;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       overflow: hidden;
-      padding-bottom: 40px; /* space for badges */
     }
 
     .overlay {
@@ -63,27 +62,16 @@
       margin-left: 8px;
     }
 
-    .award {
-      display: inline-block;
-      margin-top: 6px;
-      margin-right: 6px;
+    .motm {
+      background: gold;
+      color: black;
+      font-weight: bold;
       padding: 4px 8px;
       border-radius: 8px;
-      font-weight: bold;
-      font-size: 13px;
-      box-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
-    }
-    .player-season {
-      background-color: gold;
-      color: black;
-    }
-    .golden-boot {
-      background-color: orange;
-      color: white;
-    }
-    .playmaker {
-      background-color: #1e90ff;
-      color: white;
+      margin-top: 6px;
+      font-size: 14px;
+      display: inline-block;
+      box-shadow: 0 0 5px rgba(255, 215, 0, 0.6);
     }
 
     .stats {
@@ -137,7 +125,6 @@
           "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
         };
 
-        // Map players
         const players = data.members.map(player => ({
           username: player.name,
           proName: player.proName || player.name,
@@ -147,8 +134,8 @@
           stats: {
             games: player.gamesPlayed,
             winRate: player.winRate,
-            goals: Number(player.goals) || 0,
-            assists: Number(player.assists) || 0,
+            goals: player.goals,
+            assists: player.assists,
             shotSuccess: player.shotSuccessRate,
             passes: `${player.passesMade} (${player.passSuccessRate}%)`,
             rating: parseFloat(player.ratingAve),
@@ -156,60 +143,33 @@
           }
         }));
 
-        // Sort by rating descending
         players.sort((a, b) => b.stats.rating - a.stats.rating);
+        const topPlayer = players[0]?.username;
 
-        // Find Player of the Season (highest rating)
-        const playerOfSeason = players[0]?.username || null;
-
-        // Find Golden Boot (top goals)
-        let goldenBootPlayer = players[0];
-        for (const p of players) {
-          if (p.stats.goals > goldenBootPlayer.stats.goals) goldenBootPlayer = p;
-        }
-        const goldenBoot = goldenBootPlayer.username;
-
-        // Find Playmaker Award (top assists)
-        let playmakerPlayer = players[0];
-        for (const p of players) {
-          if (p.stats.assists > playmakerPlayer.stats.assists) playmakerPlayer = p;
-        }
-        const playmaker = playmakerPlayer.username;
-
-        // Debug log awards
-        console.log('Player of the Season:', playerOfSeason);
-        console.log('Golden Boot:', goldenBoot);
-        console.log('Playmaker:', playmaker);
-
-        // Count roles
         const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
         const container = document.getElementById("player-container");
-        container.innerHTML = ''; // Clear previous content
 
         players.forEach((player, index) => {
           roleCount[player.role] = (roleCount[player.role] || 0) + 1;
-
-          const awards = [];
-          if (player.username === playerOfSeason) awards.push('<span class="award player-season">🏆 Player of the Season</span>');
-          if (player.username === goldenBoot) awards.push('<span class="award golden-boot">🥇 Golden Boot</span>');
-          if (player.username === playmaker) awards.push('<span class="award playmaker">🎯 Playmaker Award</span>');
+          const isTopPlayer = player.username === topPlayer;
 
           const card = document.createElement("div");
           card.className = "card";
           card.style.backgroundImage = `url('${player.image}')`;
+
           card.innerHTML = `
             <div class="overlay">
               <div class="rank">${index + 1}</div>
               <h2>${player.username} <span class="badge">${player.role}</span></h2>
-              ${awards.join(' ')}
+              ${isTopPlayer ? '<span class="motm">🏅 Player of the Season</span>' : ''}
               <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
               <div class="stats">
-                <p>Games Played: ${player.stats.games}</p>
-                <p>Win Rate: ${player.stats.winRate}%</p>
-                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
-                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
-                <p>Passes: ${player.stats.passes}</p>
-                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+                <p>Games Played: <span class="count" data-target="${player.stats.games}">0</span></p>
+                <p>Win Rate: <span class="count" data-target="${player.stats.winRate}">0</span>%</p>
+                <p>Goals: <span class="count" data-target="${player.stats.goals}">0</span> | Assists: <span class="count" data-target="${player.stats.assists}">0</span></p>
+                <p>Shot Success Rate: <span class="count" data-target="${player.stats.shotSuccess}">0</span>%</p>
+                <p>Passes: <span>${player.stats.passes}</span></p>
+                <p>Rating: <span class="count" data-target="${player.stats.rating}">0</span> | Tackles: <span>${player.stats.tackles}</span></p>
               </div>
             </div>
           `;
@@ -218,10 +178,31 @@
 
         document.getElementById("footer").innerText =
           `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+
+        animateCounters();
       } catch (err) {
         document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
         console.error('Error fetching data:', err);
       }
+    }
+
+    function animateCounters() {
+      const counters = document.querySelectorAll('.count');
+      counters.forEach(counter => {
+        const update = () => {
+          const target = parseFloat(counter.getAttribute('data-target'));
+          const current = parseFloat(counter.innerText);
+          const increment = target / 50;
+
+          if (current < target) {
+            counter.innerText = (current + increment).toFixed(1);
+            setTimeout(update, 20);
+          } else {
+            counter.innerText = target % 1 === 0 ? target.toFixed(0) : target.toFixed(1);
+          }
+        };
+        update();
+      });
     }
 
     fetchPlayerStats();
