@@ -1,7 +1,6 @@
 {
   "name": "proclubs-tracker",
   "version": "1.0.0",
-  "description": "Pro Clubs Stats Tracker with Match History",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
