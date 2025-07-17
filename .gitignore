@@ -1,0 +1,19 @@
+# Node.js dependencies
+node_modules/
+
+# Firebase Admin SDK credentials (DO NOT COMMIT)
+*.json
+
+# Environment variables
+.env
+
+# Logs
+logs
+*.log
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Optional: backup or data files
+matches.json
