@@ -130,7 +130,16 @@ app.get('/health', (req, res) => {
 
 // === Serve Homepage ===
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexPath = path.join(__dirname, 'index.html');
+  console.log('Serving index.html from:', indexPath);
+  
+  // Check if file exists
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.error('index.html not found at:', indexPath);
+    res.status(404).send('index.html not found');
+  }
 });
 
 // === Start Server ===
