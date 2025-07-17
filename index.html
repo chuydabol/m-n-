@@ -71,23 +71,21 @@
       background-position: center;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
     }
 
     .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
       background-color: rgba(0,0,0,0.6);
       padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
+      color: white;
     }
 
     .overlay h2 {
-      margin: 0;
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      line-height: 1.2;
     }
 
     .badge {
@@ -112,7 +110,7 @@
     }
 
     .stats {
-      margin-top: 15px;
+      margin-top: 10px;
       font-size: 14px;
     }
 
@@ -195,7 +193,7 @@
     let players = [];
     let matches = [];
 
-    // Mapping usernames to images so the players show their pictures
+    // Username to Image URL mapping
     const imageMap = {
       "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
       "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
@@ -207,9 +205,15 @@
 
     async function fetchPlayerStats() {
       try {
+        console.log('Fetching player stats...');
         const res = await fetch('/api/players');
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        console.log('Player data received:', data);
+
+        if (!data.members || !Array.isArray(data.members)) {
+          throw new Error('Unexpected player data format');
+        }
 
         players = data.members.map(player => {
           const games = Number(player.gamesPlayed) || 1;
@@ -220,7 +224,7 @@
             proName: player.proName || player.name,
             ovr: Number(player.proOverall) || 0,
             role: player.favoritePosition || "Forward",
-            image: imageMap[player.name] || '',
+            image: imageMap[player.name] || '', // fallback blank
             stats: {
               games,
               winRate: Number(player.winRate) || 0,
@@ -234,19 +238,20 @@
           };
         });
 
-        // Determine top awards
+        if(players.length === 0) throw new Error('No players found in data.');
+
+        // Calculate top awards
         const topRatingPlayer = players.reduce((top, p) => p.stats.rating > top.stats.rating ? p : top, players[0]);
         const topScorer = players.reduce((top, p) => p.stats.goals > top.stats.goals ? p : top, players[0]);
         const topAssister = players.reduce((top, p) => p.stats.assists > top.stats.assists ? p : top, players[0]);
 
         players.sort((a, b) => b.stats.rating - a.stats.rating);
 
-        // Render initial player view
         renderPlayers(players, topRatingPlayer, topScorer, topAssister);
 
       } catch (err) {
-        document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
-        console.error(err);
+        console.error('Error fetching players:', err);
+        document.getElementById("player-container").innerHTML = `<p style="color:red;">Failed to load players: ${err.message}</p>`;
       }
     }
 
@@ -270,6 +275,7 @@
         const card = document.createElement("div");
         card.className = "card";
         card.style.backgroundImage = player.image ? `url('${player.image}')` : 'none';
+        card.title = player.username;
         card.innerHTML = `
           <div class="overlay">
             <div class="rank">${index + 1}</div>
@@ -301,9 +307,11 @@
 
     async function fetchMatchHistory() {
       try {
+        console.log('Fetching match history...');
         const res = await fetch('/api/matches');
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        console.log('Match data received:', data);
 
         matches = data.matches || [];
         const detailsEl = document.getElementById('matchDetails');
@@ -328,12 +336,11 @@
           detailsEl.appendChild(li);
         });
       } catch (err) {
-        document.getElementById('matchDetails').innerHTML = `<li>Failed to fetch matches: ${err.message}</li>`;
-        console.error(err);
+        console.error('Error fetching matches:', err);
+        document.getElementById('matchDetails').innerHTML = `<li style="color:red;">Failed to fetch matches: ${err.message}</li>`;
       }
     }
 
-    // Toggle button click handler
     document.getElementById("toggleViewBtn").addEventListener("click", async () => {
       const playerContainer = document.getElementById("player-container");
       const matchHistoryContainer = document.getElementById("matchHistoryContainer");
