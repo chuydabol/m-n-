@@ -1,5 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch'); // v2
+const AbortController = require('abort-controller');
 const path = require('path');
 const fs = require('fs');
 const app = express();
@@ -23,26 +24,33 @@ app.use((req, res, next) => {
   next();
 });
 
-// === Retry helper with exponential backoff ===
-async function fetchWithRetry(url, options = {}, retries = 2, backoff = 1000) {
-  const timeoutOptions = {
-    ...options,
-    timeout: 10000, // 10 second timeout
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; RenderBot/1.0)',
-      ...options.headers
-    }
-  };
-  
+// === Fetch helper with timeout and retry using AbortController ===
+async function fetchWithTimeout(url, options = {}, retries = 2, backoff = 1000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+
   try {
-    const res = await fetch(url, timeoutOptions);
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; RenderBot/1.0)',
+        ...options.headers,
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
     return await res.json();
   } catch (err) {
+    clearTimeout(timeout);
     if (retries > 0) {
       console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} retries left) - ${err.message}`);
-      await new Promise(r => setTimeout(r, backoff));
-      return fetchWithRetry(url, timeoutOptions, retries - 1, backoff * 1.5);
+      await new Promise((r) => setTimeout(r, backoff));
+      return fetchWithTimeout(url, options, retries - 1, backoff * 1.5);
     } else {
       throw err;
     }
@@ -63,21 +71,21 @@ const CACHE_DURATION = 60 * 1000; // 1 minute cache
 app.get('/api/players', async (req, res) => {
   console.log('GET /api/players');
 
-  if (cache.playersData && (Date.now() - cache.playersTimestamp < CACHE_DURATION)) {
+  if (cache.playersData && Date.now() - cache.playersTimestamp < CACHE_DURATION) {
     console.log('Serving cached player stats');
     return res.json(cache.playersData);
   }
 
   try {
     const url = `https://proclubs.ea.com/api/fc/members/stats?platform=${PLATFORM}&clubId=${CLUB_ID}`;
-    const data = await fetchWithRetry(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const data = await fetchWithTimeout(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
 
     cache.playersData = data;
     cache.playersTimestamp = Date.now();
 
     res.json(data);
   } catch (err) {
-    console.error('Player fetch error:', err.message);
+    console.error('Player fetch error:', err.stack || err.message);
     res.status(500).json({ error: 'Failed to fetch player stats', details: err.message });
   }
 });
@@ -86,8 +94,7 @@ app.get('/api/players', async (req, res) => {
 app.get('/api/matches', async (req, res) => {
   console.log('GET /api/matches');
 
-  // Serve cached data if fresh
-  if (cache.matchesData && (Date.now() - cache.matchesTimestamp < CACHE_DURATION)) {
+  if (cache.matchesData && Date.now() - cache.matchesTimestamp < CACHE_DURATION) {
     console.log('Serving cached matches data');
     return res.json(cache.matchesData);
   }
@@ -102,11 +109,11 @@ app.get('/api/matches', async (req, res) => {
 
     // Fetch new matches from EA with retries
     const url = `https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=${PLATFORM}&clubIds=${CLUB_ID}`;
-    const latestMatches = await fetchWithRetry(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const latestMatches = await fetchWithTimeout(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
 
     // Combine and deduplicate
-    const existingIds = new Set(savedMatches.map(m => m.matchId));
-    const newMatches = latestMatches.filter(m => !existingIds.has(m.matchId));
+    const existingIds = new Set(savedMatches.map((m) => m.matchId));
+    const newMatches = latestMatches.filter((m) => !existingIds.has(m.matchId));
     const allMatches = [...newMatches, ...savedMatches];
 
     // Save updated match list locally
@@ -118,7 +125,7 @@ app.get('/api/matches', async (req, res) => {
 
     res.json(allMatches);
   } catch (err) {
-    console.error('Match fetch error:', err.message);
+    console.error('Match fetch error:', err.stack || err.message);
     res.status(500).json({ error: 'Failed to fetch match history', details: err.message });
   }
 });
