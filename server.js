@@ -1,148 +1,71 @@
 const express = require('express');
 const fetch = require('node-fetch'); // v2
 const path = require('path');
-const fs = require('fs');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
-const CLUB_ID = '2491998';
-const PLATFORM = 'common-gen5';
-const DATA_DIR = path.join(__dirname, 'data');
-const MATCHES_FILE = path.join(DATA_DIR, 'matches.json');
-
-// Ensure the /data directory exists
-fs.mkdirSync(DATA_DIR, { recursive: true });
-
-// === Middleware ===
-// Serve static files (index.html, client JS, CSS, etc.)
+// Serve static files (like index.html, JS, CSS)
 app.use(express.static(__dirname));
 
-// Enable CORS (if you fetch from a different domain)
+// Optional CORS header (remove if not needed)
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 });
 
-// === Retry helper with exponential backoff ===
-async function fetchWithRetry(url, options = {}, retries = 2, backoff = 1000) {
-  const timeoutOptions = {
-    ...options,
-    timeout: 10000, // 10 second timeout
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; RenderBot/1.0)',
-      ...options.headers
-    }
-  };
-  
-  try {
-    const res = await fetch(url, timeoutOptions);
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    if (retries > 0) {
-      console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} retries left) - ${err.message}`);
-      await new Promise(r => setTimeout(r, backoff));
-      return fetchWithRetry(url, timeoutOptions, retries - 1, backoff * 1.5);
-    } else {
-      throw err;
-    }
-  }
-}
-
-// === In-memory caches ===
-const cache = {
-  playersData: null,
-  playersTimestamp: 0,
-  matchesData: null,
-  matchesTimestamp: 0,
-};
-
-const CACHE_DURATION = 60 * 1000; // 1 minute cache
-
-// === Route: Get Player Stats with retry & cache ===
+// === Route: Get Player Stats ===
 app.get('/api/players', async (req, res) => {
   console.log('GET /api/players');
-
-  if (cache.playersData && (Date.now() - cache.playersTimestamp < CACHE_DURATION)) {
-    console.log('Serving cached player stats');
-    return res.json(cache.playersData);
-  }
-
   try {
-    const url = `https://proclubs.ea.com/api/fc/members/stats?platform=${PLATFORM}&clubId=${CLUB_ID}`;
-    const data = await fetchWithRetry(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const response = await fetch('https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2491998', {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
 
-    cache.playersData = data;
-    cache.playersTimestamp = Date.now();
+    if (!response.ok) {
+      console.error('EA API error:', response.status);
+      return res.status(response.status).json({ error: 'EA API error', status: response.status });
+    }
 
+    const data = await response.json();
     res.json(data);
   } catch (err) {
-    console.error('Player fetch error:', err.message);
+    console.error('Server error:', err.message);
     res.status(500).json({ error: 'Failed to fetch player stats', details: err.message });
   }
 });
 
-// === Route: Get Match History (Persistent) with retry & cache ===
+// === NEW Route: Get Match History ===
 app.get('/api/matches', async (req, res) => {
   console.log('GET /api/matches');
-
-  // Serve cached data if fresh
-  if (cache.matchesData && (Date.now() - cache.matchesTimestamp < CACHE_DURATION)) {
-    console.log('Serving cached matches data');
-    return res.json(cache.matchesData);
-  }
-
   try {
-    // Load existing matches from local storage
-    let savedMatches = [];
-    if (fs.existsSync(MATCHES_FILE)) {
-      const fileContents = fs.readFileSync(MATCHES_FILE, 'utf8');
-      savedMatches = JSON.parse(fileContents || '[]');
+    const response = await fetch('https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=common-gen5&clubIds=2491998', {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('EA Match API error:', response.status);
+      return res.status(response.status).json({ error: 'EA Match API error', status: response.status });
     }
 
-    // Fetch new matches from EA with retries
-    const url = `https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=${PLATFORM}&clubIds=${CLUB_ID}`;
-    const latestMatches = await fetchWithRetry(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-
-    // Combine and deduplicate
-    const existingIds = new Set(savedMatches.map(m => m.matchId));
-    const newMatches = latestMatches.filter(m => !existingIds.has(m.matchId));
-    const allMatches = [...newMatches, ...savedMatches];
-
-    // Save updated match list locally
-    fs.writeFileSync(MATCHES_FILE, JSON.stringify(allMatches, null, 2));
-
-    // Cache result
-    cache.matchesData = allMatches;
-    cache.matchesTimestamp = Date.now();
-
-    res.json(allMatches);
+    const data = await response.json();
+    res.json(data);
   } catch (err) {
-    console.error('Match fetch error:', err.message);
+    console.error('Server error fetching matches:', err.message);
     res.status(500).json({ error: 'Failed to fetch match history', details: err.message });
   }
 });
 
-// === Health Check for Render ===
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// === Serve Homepage ===
+// === Serve index.html ===
 app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'index.html');
-  console.log('Serving index.html from:', indexPath);
-  
-  // Check if file exists
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    console.error('index.html not found at:', indexPath);
-    res.status(404).send('index.html not found');
-  }
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// === Start Server ===
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
+  console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
