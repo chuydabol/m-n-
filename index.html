@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Royal Republic FC</title>
   <style>
     body {
@@ -93,13 +93,11 @@
   </div>
 
   <script>
-    const CLUB_ID = 2491998;
-    const PLATFORM = 'common-gen5';
     const projectionGames = 500;
     let projectionMode = false;
 
     async function fetchPlayerStats() {
-      const res = await fetch(`https://proclubs.ea.com/api/fc/members/stats?platform=${PLATFORM}&clubId=${CLUB_ID}`);
+      const res = await fetch('/api/players');
       const data = await res.json();
       const playersDiv = document.getElementById("players");
 
@@ -157,7 +155,7 @@
     });
 
     async function fetchMatchHistory() {
-      const res = await fetch(`https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=${PLATFORM}&clubIds=${CLUB_ID}`);
+      const res = await fetch('/api/matches');
       const data = await res.json();
       const matchesDiv = document.getElementById("matches");
 
