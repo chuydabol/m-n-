@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pro Club Stats</title>
   <style>
     body {
@@ -11,7 +11,6 @@
       margin: 0;
       padding: 0;
     }
-
     header {
       display: flex;
       align-items: center;
@@ -20,23 +19,19 @@
       color: white;
       padding: 20px 0;
     }
-
     .logo {
       height: 60px;
       margin-right: 15px;
     }
-
     .club-name {
       font-size: 28px;
       font-weight: bold;
     }
-
     h1 {
       text-align: center;
       margin: 20px 0 10px;
     }
-
-    #toggleProjection {
+    #toggleView {
       display: block;
       margin: 0 auto 30px auto;
       padding: 10px 20px;
@@ -47,7 +42,17 @@
       border-radius: 8px;
       cursor: pointer;
     }
-
+    #toggleProjection {
+      display: inline-block;
+      margin: 10px auto 20px auto;
+      padding: 8px 16px;
+      font-size: 14px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
     .container {
       display: flex;
       flex-wrap: wrap;
@@ -55,7 +60,6 @@
       justify-content: center;
       padding: 0 20px;
     }
-
     .card {
       color: white;
       border-radius: 10px;
@@ -67,24 +71,19 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       overflow: hidden;
     }
-
     .overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background-color: rgba(0,0,0,0.6);
       padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
     }
-
     .overlay h2 {
       margin: 0;
     }
-
     .badge {
       background-color: #007bff;
       color: white;
@@ -93,7 +92,6 @@
       font-size: 12px;
       margin-left: 8px;
     }
-
     .motm {
       background: gold;
       color: black;
@@ -105,20 +103,16 @@
       display: inline-block;
       box-shadow: 0 0 5px rgba(255, 215, 0, 0.6);
     }
-
     .stats {
       margin-top: 15px;
       font-size: 14px;
     }
-
     .stats p {
       margin: 4px 0;
     }
-
     .rank {
       position: absolute;
-      top: 10px;
-      left: 10px;
+      top: 10px; left: 10px;
       background-color: gold;
       color: black;
       font-weight: bold;
@@ -127,7 +121,6 @@
       font-size: 16px;
       box-shadow: 0 0 5px rgba(0,0,0,0.3);
     }
-
     footer {
       text-align: center;
       margin-top: 40px;
@@ -135,65 +128,63 @@
       color: #777;
       padding-bottom: 20px;
     }
-
-    /* Match history styles */
+    /* Hide containers by default */
     #matchHistoryContainer {
-      max-width: 800px;
-      margin: 40px auto 20px;
+      display: none;
+      max-width: 600px;
+      margin: 0 auto 40px auto;
       padding: 0 20px;
     }
-
-    #matchSelect {
+    #matchHistoryContainer select, #matchHistoryContainer ul {
       width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-bottom: 20px;
-    }
-
-    #matchDetails {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       font-size: 14px;
-      color: #333;
+      margin-top: 10px;
     }
-
-    #matchDetails p {
-      margin: 6px 0;
+    #matchHistoryContainer ul {
+      list-style: none;
+      padding: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
     }
-
-    #matchDetails strong {
-      color: #007bff;
+    #matchHistoryContainer ul li {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    #matchHistoryContainer ul li:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
 <body>
-  <!-- Header with logo and club name -->
   <header>
-    <img src="https://i.imgur.com/la44JF9.png" alt="Club Logo" class="logo">
+    <img src="https://i.imgur.com/la44JF9.png" alt="Club Logo" class="logo" />
     <div class="club-name">Royal Republic FC</div>
   </header>
 
   <h1>Pro Clubs Player Stats</h1>
-  <button id="toggleProjection">🔮 Show Projections</button>
-  <div class="container" id="player-container"></div>
+  <button id="toggleView">📊 Show Match History</button>
 
-  <!-- Match History Section -->
-  <div id="matchHistoryContainer">
-    <select id="matchSelect">
-      <option value="">Select a Match to View Details</option>
-    </select>
-    <div id="matchDetails">
-      <p>Select a match from the dropdown above to see details here.</p>
-    </div>
+  <!-- Player Stats Container -->
+  <div id="playerStatsView">
+    <button id="toggleProjection">🔮 Show Projections</button>
+    <div class="container" id="player-container"></div>
+    <footer id="footer"></footer>
   </div>
 
-  <footer id="footer"></footer>
+  <!-- Match History Container -->
+  <div id="matchHistoryContainer">
+    <label for="matchSelect">Select Match:</label>
+    <select id="matchSelect">
+      <option value="">Loading matches...</option>
+    </select>
+    <ul id="matchDetails"></ul>
+  </div>
 
   <script>
+    let isMatchHistoryView = false;
     let projectionMode = false;
     let players = [];
     let matches = [];
@@ -284,7 +275,6 @@
 
         document.getElementById("footer").innerText =
           `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
-
       } catch (err) {
         document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
         console.error(err);
@@ -298,68 +288,92 @@
         const data = await res.json();
 
         matches = data.matches || [];
+        const matchSelect = document.getElementById('matchSelect');
+        matchSelect.innerHTML = '';
 
-        const select = document.getElementById('matchSelect');
-        select.innerHTML = '<option value="">Select a Match to View Details</option>';
+        if (matches.length === 0) {
+          matchSelect.innerHTML = '<option value="">No matches found</option>';
+          document.getElementById('matchDetails').innerHTML = '';
+          return;
+        }
 
         matches.forEach((match, i) => {
-          const date = new Date(match.date);
           const option = document.createElement('option');
           option.value = i;
-          option.textContent = `${date.toLocaleDateString()} - ${match.opponent} (${match.result})`;
-          select.appendChild(option);
+          option.textContent = `Match ${i + 1} - ${match.date || 'Date Unknown'}`;
+          matchSelect.appendChild(option);
+        });
+
+        matchSelect.addEventListener('change', () => {
+          const idx = matchSelect.value;
+          if (idx === '') {
+            document.getElementById('matchDetails').innerHTML = '';
+            return;
+          }
+          displayMatchDetails(matches[idx]);
         });
       } catch (err) {
-        const container = document.getElementById('matchHistoryContainer');
-        container.innerHTML = `<p>Failed to fetch match history: ${err.message}</p>`;
+        document.getElementById('matchDetails').innerHTML = `<li>Failed to fetch matches: ${err.message}</li>`;
         console.error(err);
       }
     }
 
-    function displayMatchDetails(index) {
-      const detailsDiv = document.getElementById('matchDetails');
-      if (index === '' || !matches[index]) {
-        detailsDiv.innerHTML = '<p>Select a match from the dropdown above to see details here.</p>';
-        return;
-      }
-      const match = matches[index];
-
-      detailsDiv.innerHTML = `
-        <p><strong>Date:</strong> ${new Date(match.date).toLocaleString()}</p>
-        <p><strong>Opponent:</strong> ${match.opponent}</p>
-        <p><strong>Result:</strong> ${match.result}</p>
-        <p><strong>Goals Scored:</strong> ${match.goalsScored}</p>
-        <p><strong>Assists:</strong> ${match.assists}</p>
-        <p><strong>Man of the Match:</strong> ${match.manOfTheMatch || 'N/A'}</p>
-        <p><strong>Summary:</strong> ${match.summary || 'No summary available.'}</p>
+    function displayMatchDetails(match) {
+      const detailsEl = document.getElementById('matchDetails');
+      detailsEl.innerHTML = `
+        <li><strong>Date:</strong> ${match.date || 'N/A'}</li>
+        <li><strong>Opponent:</strong> ${match.opponent || 'N/A'}</li>
+        <li><strong>Result:</strong> ${match.result || 'N/A'}</li>
+        <li><strong>Score:</strong> ${match.score || 'N/A'}</li>
+        <li><strong>Goals:</strong> ${match.goals || 0}</li>
+        <li><strong>Assists:</strong> ${match.assists || 0}</li>
+        <li><strong>Man of the Match:</strong> ${match.motm || 'N/A'}</li>
       `;
     }
 
-    document.getElementById("toggleProjection").addEventListener("click", () => {
+    // Toggle between Player Stats and Match History views
+    document.getElementById('toggleView').addEventListener('click', () => {
+      isMatchHistoryView = !isMatchHistoryView;
+      const toggleBtn = document.getElementById('toggleView');
+      const playerView = document.getElementById('playerStatsView');
+      const matchView = document.getElementById('matchHistoryContainer');
+
+      if (isMatchHistoryView) {
+        playerView.style.display = 'none';
+        matchView.style.display = 'block';
+        toggleBtn.textContent = '📊 Show Player Stats';
+        if (matches.length === 0) {
+          fetchMatchHistory();
+        }
+      } else {
+        playerView.style.display = 'block';
+        matchView.style.display = 'none';
+        toggleBtn.textContent = '📊 Show Match History';
+      }
+    });
+
+    // Projections toggle inside Player Stats view
+    document.getElementById('toggleProjection').addEventListener('click', () => {
       projectionMode = !projectionMode;
-      const button = document.getElementById("toggleProjection");
-      const cards = document.querySelectorAll(".card");
+      const button = document.getElementById('toggleProjection');
+      const cards = document.querySelectorAll('.card');
       cards.forEach(card => {
-        const proj = card.querySelector(".projections").value.split(",");
-        const goalsAssistsEl = card.querySelector(".goals-assists");
+        const proj = card.querySelector('.projections').value.split(',');
+        const goalsAssistsEl = card.querySelector('.goals-assists');
         if (projectionMode) {
           goalsAssistsEl.innerHTML = `Projected Goals: <span>${proj[0]}</span> | Projected Assists: <span>${proj[1]}</span>`;
         } else {
-          const realGoals = goalsAssistsEl.getAttribute("data-real-goals");
-          const realAssists = goalsAssistsEl.getAttribute("data-real-assists");
+          const realGoals = goalsAssistsEl.getAttribute('data-real-goals');
+          const realAssists = goalsAssistsEl.getAttribute('data-real-assists');
           goalsAssistsEl.innerHTML = `Goals: <span>${realGoals}</span> | Assists: <span>${realAssists}</span>`;
         }
       });
-      button.innerText = projectionMode ? "📊 Show Real Stats" : "🔮 Show Projections";
+      button.innerText = projectionMode ? '📊 Show Real Stats' : '🔮 Show Projections';
     });
 
-    document.getElementById('matchSelect').addEventListener('change', e => {
-      displayMatchDetails(e.target.value);
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
+    // Initial fetch of player stats on load
+    document.addEventListener('DOMContentLoaded', () => {
       fetchPlayerStats();
-      fetchMatchHistory();
     });
   </script>
 </body>
