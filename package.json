@@ -2,10 +2,10 @@
   "name": "proclubs-tracker",
   "version": "1.0.0",
   "description": "Pro Clubs Stats Tracker with Match History",
-  "main": "index.js",
+  "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -13,8 +13,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "keywords": [],
-  "author": "Your Name",
-  "license": "MIT"
+  }
 }
