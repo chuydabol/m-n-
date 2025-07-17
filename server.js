@@ -1,13 +1,21 @@
 const express = require('express');
 const fetch = require('node-fetch'); // v2
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 80;
 
-// Serve static files (like index.html, JS, CSS)
+const MATCHES_FILE = path.join(__dirname, 'data', 'matches.json');
+const CLUB_ID = '2491998';
+const PLATFORM = 'common-gen5';
+
+// Ensure data directory exists
+fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+
+// Serve static files
 app.use(express.static(__dirname));
 
-// Optional CORS header (remove if not needed)
+// CORS (optional)
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
@@ -15,53 +23,54 @@ app.use((req, res, next) => {
 
 // === Route: Get Player Stats ===
 app.get('/api/players', async (req, res) => {
-  console.log('GET /api/players');
   try {
-    const response = await fetch('https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2491998', {
+    const response = await fetch(`https://proclubs.ea.com/api/fc/members/stats?platform=${PLATFORM}&clubId=${CLUB_ID}`, {
       timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-
-    if (!response.ok) {
-      console.error('EA API error:', response.status);
-      return res.status(response.status).json({ error: 'EA API error', status: response.status });
-    }
-
+    if (!response.ok) return res.status(response.status).json({ error: 'EA API error' });
     const data = await response.json();
     res.json(data);
   } catch (err) {
-    console.error('Server error:', err.message);
+    console.error('Player fetch error:', err.message);
     res.status(500).json({ error: 'Failed to fetch player stats', details: err.message });
   }
 });
 
-// === NEW Route: Get Match History ===
+// === Route: Get Match History (persisted) ===
 app.get('/api/matches', async (req, res) => {
-  console.log('GET /api/matches');
   try {
-    const response = await fetch('https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=common-gen5&clubIds=2491998', {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-
-    if (!response.ok) {
-      console.error('EA Match API error:', response.status);
-      return res.status(response.status).json({ error: 'EA Match API error', status: response.status });
+    // 1. Load local match history
+    let savedMatches = [];
+    if (fs.existsSync(MATCHES_FILE)) {
+      savedMatches = JSON.parse(fs.readFileSync(MATCHES_FILE, 'utf-8'));
     }
 
-    const data = await response.json();
-    res.json(data);
+    // 2. Fetch latest matches from EA
+    const response = await fetch(`https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=${PLATFORM}&clubIds=${CLUB_ID}`, {
+      timeout: 10000,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'EA Match API error' });
+    const latestMatches = await response.json();
+
+    // 3. Merge matches, avoiding duplicates
+    const existingMatchIds = new Set(savedMatches.map(m => m.matchId));
+    const newMatches = latestMatches.filter(m => !existingMatchIds.has(m.matchId));
+    const combinedMatches = [...newMatches, ...savedMatches];
+
+    // 4. Save updated match history
+    fs.writeFileSync(MATCHES_FILE, JSON.stringify(combinedMatches, null, 2));
+
+    // 5. Send to client
+    res.json(combinedMatches);
   } catch (err) {
-    console.error('Server error fetching matches:', err.message);
+    console.error('Match fetch error:', err.message);
     res.status(500).json({ error: 'Failed to fetch match history', details: err.message });
   }
 });
 
-// === Serve index.html ===
+// === Serve homepage ===
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
