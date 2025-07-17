@@ -3,7 +3,7 @@ const fetch = require('node-fetch'); // v2
 const path = require('path');
 const fs = require('fs');
 const app = express();
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 
 const CLUB_ID = '2491998';
 const PLATFORM = 'common-gen5';
@@ -24,16 +24,25 @@ app.use((req, res, next) => {
 });
 
 // === Retry helper with exponential backoff ===
-async function fetchWithRetry(url, options = {}, retries = 3, backoff = 500) {
+async function fetchWithRetry(url, options = {}, retries = 2, backoff = 1000) {
+  const timeoutOptions = {
+    ...options,
+    timeout: 10000, // 10 second timeout
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; RenderBot/1.0)',
+      ...options.headers
+    }
+  };
+  
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, timeoutOptions);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return await res.json();
   } catch (err) {
     if (retries > 0) {
-      console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} retries left)`);
+      console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} retries left) - ${err.message}`);
       await new Promise(r => setTimeout(r, backoff));
-      return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      return fetchWithRetry(url, timeoutOptions, retries - 1, backoff * 1.5);
     } else {
       throw err;
     }
@@ -112,6 +121,11 @@ app.get('/api/matches', async (req, res) => {
     console.error('Match fetch error:', err.message);
     res.status(500).json({ error: 'Failed to fetch match history', details: err.message });
   }
+});
+
+// === Health Check for Render ===
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // === Serve Homepage ===
