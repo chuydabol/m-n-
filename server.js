@@ -1,5 +1,5 @@
 const express = require('express');
-const fetch = require('node-fetch'); // v2
+const fetch = require('node-fetch'); // For Node v18-, use v2
 const path = require('path');
 const fs = require('fs');
 const app = express();
@@ -14,10 +14,11 @@ const MATCHES_FILE = path.join(DATA_DIR, 'matches.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // === Middleware ===
-// Serve static files (index.html, client JS, CSS, etc.)
+// Serve static files (HTML, CSS, JS, images)
 app.use(express.static(__dirname));
+app.use('/img', express.static(path.join(__dirname, 'img'))); // 👈 Serve image folder
 
-// Enable CORS (if you fetch from a different domain)
+// Enable CORS (optional, helpful during local dev)
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
@@ -33,8 +34,9 @@ app.get('/api/players', async (req, res) => {
     });
 
     if (!response.ok) {
-      console.error('EA API error:', response.status);
-      return res.status(response.status).json({ error: 'EA API error' });
+      const errorText = await response.text();
+      console.error('EA API error:', response.status, errorText);
+      return res.status(response.status).json({ error: 'EA API error', status: response.status });
     }
 
     const data = await response.json();
@@ -48,13 +50,17 @@ app.get('/api/players', async (req, res) => {
 // === Route: Get Match History (Persistent) ===
 app.get('/api/matches', async (req, res) => {
   console.log('GET /api/matches');
-
   try {
-    // Load existing matches from local storage
+    // Load saved matches
     let savedMatches = [];
     if (fs.existsSync(MATCHES_FILE)) {
-      const fileContents = fs.readFileSync(MATCHES_FILE, 'utf8');
-      savedMatches = JSON.parse(fileContents || '[]');
+      try {
+        const fileContents = fs.readFileSync(MATCHES_FILE, 'utf8');
+        savedMatches = JSON.parse(fileContents || '[]');
+      } catch (parseErr) {
+        console.warn('Warning: Could not parse saved match history. Starting fresh.');
+        savedMatches = [];
+      }
     }
 
     // Fetch new matches from EA
@@ -64,21 +70,20 @@ app.get('/api/matches', async (req, res) => {
     });
 
     if (!response.ok) {
-      console.error('EA Match API error:', response.status);
-      return res.status(response.status).json({ error: 'EA Match API error' });
+      const errorText = await response.text();
+      console.error('EA Match API error:', response.status, errorText);
+      return res.status(response.status).json({ error: 'EA Match API error', status: response.status });
     }
 
     const latestMatches = await response.json();
 
-    // Combine and deduplicate
+    // Deduplicate by matchId
     const existingIds = new Set(savedMatches.map(m => m.matchId));
     const newMatches = latestMatches.filter(m => !existingIds.has(m.matchId));
     const allMatches = [...newMatches, ...savedMatches];
 
-    // Save updated match list
+    // Save combined match list
     fs.writeFileSync(MATCHES_FILE, JSON.stringify(allMatches, null, 2));
-
-    // Return to client
     res.json(allMatches);
   } catch (err) {
     console.error('Match fetch error:', err.message);
@@ -86,7 +91,7 @@ app.get('/api/matches', async (req, res) => {
   }
 });
 
-// === Serve Homepage ===
+// === Homepage ===
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
