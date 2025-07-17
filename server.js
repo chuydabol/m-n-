@@ -1,112 +1,49 @@
-const express = require('express');
-const fetch = require('node-fetch'); // v2 syntax
-const path = require('path');
-const fs = require('fs');
+const express = require("express");
+const fetch = require("node-fetch");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CLUB_ID = '2491998';
-const PLATFORM = 'common-gen5';
-const DATA_DIR = path.join(__dirname, 'data');
-const MATCHES_FILE = path.join(DATA_DIR, 'matches.json');
+// Constants for EA Pro Clubs API
+const CLUB_ID = "249199"; // Replace with your actual Club ID
+const PLATFORM = "common-gen5";
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+// Serve static files (like your HTML) from the "public" folder
+app.use(express.static("public"));
 
-app.use(express.static(__dirname));
-
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  next();
-});
-
-const cache = {
-  playersData: null,
-  playersTimestamp: 0,
-  matchesData: null,
-  matchesTimestamp: 0,
-};
-
-const CACHE_DURATION = 60 * 1000;
-
-async function fetchWithRetry(url, options = {}, retries = 2, backoff = 1000) {
+// Endpoint to fetch players
+app.get("/api/players", async (req, res) => {
   try {
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; RenderBot/1.0)',
-        ...options.headers
-      }
-    });
+    const response = await fetch(`https://proclubs.ea.com/api/fc/members/stats?platform=${PLATFORM}&clubId=${CLUB_ID}`);
+    if (!response.ok) throw new Error("Failed to fetch players from EA API");
 
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return await res.json();
+    const data = await response.json();
+    const members = Object.values(data).map(player => ({
+      name: player.name,
+      proName: player.proName,
+      proOverall: player.proOverall,
+      favoritePosition: player.favoritePosition,
+      gamesPlayed: player.gamesPlayed,
+      winRate: player.winRate,
+      goals: player.goals,
+      assists: player.assists,
+      ratingAve: player.ratingAve,
+      shotSuccessRate: player.shotSuccessRate,
+      passesMade: player.passesMade,
+      passSuccessRate: player.passSuccessRate,
+      tacklesMade: player.tacklesMade,
+      tackleSuccessRate: player.tackleSuccessRate,
+    }));
+
+    res.json({ members });
   } catch (err) {
-    if (retries > 0) {
-      console.warn(`Retrying ${url} in ${backoff}ms (${retries} retries left)`);
-      await new Promise(r => setTimeout(r, backoff));
-      return fetchWithRetry(url, options, retries - 1, backoff * 2);
-    }
-    throw err;
-  }
-}
-
-app.get('/api/players', async (req, res) => {
-  if (cache.playersData && Date.now() - cache.playersTimestamp < CACHE_DURATION) {
-    return res.json(cache.playersData);
-  }
-
-  try {
-    const url = `https://proclubs.ea.com/api/fc/members/stats?platform=${PLATFORM}&clubId=${CLUB_ID}`;
-    const data = await fetchWithRetry(url);
-    cache.playersData = data;
-    cache.playersTimestamp = Date.now();
-    res.json(data);
-  } catch (err) {
-    console.error('Error fetching players:', err.message);
-    res.status(500).json({ error: 'Failed to fetch player stats' });
+    console.error("Error in /api/players:", err.message);
+    res.status(502).json({ error: "Failed to fetch player data" });
   }
 });
 
-app.get('/api/matches', async (req, res) => {
-  if (cache.matchesData && Date.now() - cache.matchesTimestamp < CACHE_DURATION) {
-    return res.json(cache.matchesData);
-  }
-
-  try {
-    let savedMatches = [];
-    if (fs.existsSync(MATCHES_FILE)) {
-      const fileContents = fs.readFileSync(MATCHES_FILE, 'utf8');
-      savedMatches = JSON.parse(fileContents || '[]');
-    }
-
-    const url = `https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=${PLATFORM}&clubIds=${CLUB_ID}`;
-    const latestMatches = await fetchWithRetry(url);
-
-    const existingIds = new Set(savedMatches.map(m => m.matchId));
-    const newMatches = latestMatches.filter(m => !existingIds.has(m.matchId));
-    const allMatches = [...newMatches, ...savedMatches];
-
-    fs.writeFileSync(MATCHES_FILE, JSON.stringify(allMatches, null, 2));
-
-    cache.matchesData = allMatches;
-    cache.matchesTimestamp = Date.now();
-
-    res.json(allMatches);
-  } catch (err) {
-    console.error('Error fetching matches:', err.message);
-    res.status(500).json({ error: 'Failed to fetch match history' });
-  }
-});
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
