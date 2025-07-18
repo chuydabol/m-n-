@@ -1,64 +1,72 @@
-// server.js
-const express = require('express');
-const fetch = require('node-fetch'); // Use node-fetch v2 for CommonJS
-const path = require('path');
-const app = express();
+<div id="match-history">
+  <h2>Match History</h2>
+  <button onclick="refreshMatches()">Refresh Matches</button>
+  <table border="1" cellspacing="0" cellpadding="5" style="width:100%; max-width:600px; margin-top:10px;">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Opponent</th>
+        <th>Score</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody id="match-table-body"></tbody>
+  </table>
+  <p id="status"></p>
+</div>
 
-const PORT = process.env.PORT || 10000;
+<script>
+  async function loadMatches() {
+    const status = document.getElementById('status');
+    status.textContent = 'Loading matches...';
 
-// Serve static files from the root directory (index.html, etc.)
-app.use(express.static(__dirname));
+    try {
+      const res = await fetch('/api/matches');
+      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      const matches = await res.json();
 
-// === Route: Player Stats ===
-app.get('/api/players', async (req, res) => {
-  console.log('📥 Request: /api/players');
-  try {
-    const response = await fetch('https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2491998', {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 10000
-    });
+      const tbody = document.getElementById('match-table-body');
+      tbody.innerHTML = '';
 
-    if (!response.ok) {
-      console.error('❌ EA /players error:', response.status);
-      return res.status(response.status).json({ error: 'EA API error on /players' });
+      matches.forEach(match => {
+        const date = new Date(match.timestamp * 1000).toLocaleDateString();
+        const opponent = match.opponentName || 'Unknown';
+        const score = `${match.clubScore} - ${match.opponentScore}`;
+        const result = match.clubScore > match.opponentScore ? 'Win' :
+                       match.clubScore < match.opponentScore ? 'Loss' : 'Draw';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${date}</td>
+          <td>${opponent}</td>
+          <td>${score}</td>
+          <td>${result}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      status.textContent = `Loaded ${matches.length} matches.`;
+    } catch (err) {
+      status.textContent = `Error loading matches: ${err.message}`;
     }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    console.error('❌ Error fetching /players:', err.message);
-    res.status(500).json({ error: 'Failed to fetch player stats', details: err.message });
   }
-});
 
-// === Route: Match History ===
-app.get('/api/matches', async (req, res) => {
-  console.log('📥 Request: /api/matches');
-  try {
-    const response = await fetch('https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=common-gen5&clubIds=2491998', {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 10000
-    });
+  async function refreshMatches() {
+    const status = document.getElementById('status');
+    status.textContent = 'Refreshing matches...';
 
-    if (!response.ok) {
-      console.error('❌ EA /matches error:', response.status);
-      return res.status(response.status).json({ error: 'EA API error on /matches' });
+    try {
+      const res = await fetch('/api/matches/refresh');
+      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+
+      const data = await res.json();
+      status.textContent = `Refreshed ${data.count} matches. Reloading...`;
+      await loadMatches();
+    } catch (err) {
+      status.textContent = `Error refreshing matches: ${err.message}`;
     }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    console.error('❌ Error fetching /matches:', err.message);
-    res.status(500).json({ error: 'Failed to fetch match history', details: err.message });
   }
-});
 
-// === Route: Serve HTML ===
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// === Start Server ===
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
-});
+  // Load matches when page loads
+  loadMatches();
+</script>
