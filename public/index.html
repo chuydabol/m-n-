@@ -3,110 +3,140 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pro Clubs Player Stats</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Pro Club Stats</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      padding: 20px;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    #players-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-    }
-
-    .player-card {
-      background: #1e1e1e;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      text-align: center;
-    }
-
-    .player-card h2 {
-      margin: 0;
-      font-size: 1.2rem;
-      color: #00d9ff;
-    }
-
-    .stat {
-      margin-top: 8px;
-      font-size: 0.95rem;
-    }
-
-    #no-players {
-      text-align: center;
-      margin-top: 50px;
-      font-size: 1.2rem;
-      color: #888;
-    }
-
-    .player-image {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-bottom: 10px;
-    }
+    /* styles unchanged */
   </style>
 </head>
 <body>
-  <h1>⚽ Pro Clubs Player Stats</h1>
-  <div id="players-container"></div>
-  <div id="no-players" style="display: none;">No player data found.</div>
+  <h1>Pro Clubs Player Stats</h1>
+  <button class="toggle-btn" onclick="toggleDetails()">Toggle Projections & Match History</button>
+  <div class="container" id="player-container"></div>
+
+  <div id="match-history">
+    <h2 style="text-align: center;">Match History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Opponent</th>
+          <th>Score</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="match-table-body"></tbody>
+    </table>
+  </div>
+
+  <footer id="footer"></footer>
 
   <script>
-    async function loadPlayers() {
+    async function fetchPlayerStats() {
       try {
         const res = await fetch('/api/players');
         const data = await res.json();
 
-        const members = data.members || {};
-        const container = document.getElementById('players-container');
-        const noPlayers = document.getElementById('no-players');
+        const imageMap = {
+          "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+          "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+          "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+          "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+          "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+          "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
+        };
 
-        container.innerHTML = ''; // clear if reloaded
+        const container = document.getElementById("player-container");
+        container.innerHTML = "";
 
-        if (Object.keys(members).length === 0) {
-          noPlayers.style.display = 'block';
-          return;
-        }
+        const players = data.members.map(player => ({
+          username: player.name,
+          proName: player.proName || player.name,
+          ovr: player.proOverall || 0,
+          role: player.favoritePosition || "Forward",
+          image: imageMap[player.name] || '',
+          stats: {
+            games: player.gamesPlayed,
+            winRate: player.winRate,
+            goals: player.goals,
+            assists: player.assists,
+            shotSuccess: player.shotSuccessRate,
+            passes: `${player.passesMade} (${player.passSuccessRate}%)`,
+            rating: parseFloat(player.ratingAve),
+            tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
+          }
+        }));
 
-        Object.values(members).forEach(player => {
-          const card = document.createElement('div');
-          card.className = 'player-card';
+        players.sort((a, b) => b.stats.rating - a.stats.rating);
 
-          // optional image — you can update with real images later
-          const playerImage = `images/${player.name?.toLowerCase() || 'default'}.png`;
+        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
 
+        players.forEach((player, index) => {
+          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
+
+          const card = document.createElement("div");
+          card.className = "card";
+          card.style.backgroundImage = `url('${player.image}')`;
           card.innerHTML = `
-            <img src="${playerImage}" alt="${player.name}" class="player-image" onerror="this.src='images/default.png'">
-            <h2>${player.name || 'Unknown'}</h2>
-            <div class="stat">Rating: ${player.overallRating || 'N/A'}</div>
-            <div class="stat">Goals: ${player.goals || 0}</div>
-            <div class="stat">Assists: ${player.assists || 0}</div>
-            <div class="stat">Matches: ${player.gamesPlayed || 0}</div>
+            <div class="overlay">
+              <div class="rank">${index + 1}</div>
+              <h2>${player.username} <span class="badge">${player.role}</span></h2>
+              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+              <div class="stats">
+                <p>Games Played: ${player.stats.games}</p>
+                <p>Win Rate: ${player.stats.winRate}%</p>
+                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+                <p>Passes: ${player.stats.passes}</p>
+                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+              </div>
+            </div>
           `;
           container.appendChild(card);
         });
-      } catch (error) {
-        console.error('Failed to load players:', error);
-        document.getElementById('no-players').textContent = 'Error loading players.';
-        document.getElementById('no-players').style.display = 'block';
+
+        document.getElementById("footer").innerText =
+          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+      } catch (err) {
+        document.getElementById("player-container").innerHTML = `<p>Error fetching players: ${err.message}</p>`;
       }
     }
 
-    loadPlayers();
+    async function fetchMatchHistory() {
+      try {
+        const res = await fetch('/api/matches');
+        const data = await res.json();
+
+        const tableBody = document.getElementById("match-table-body");
+        tableBody.innerHTML = "";
+
+        data.forEach(match => {
+          const row = document.createElement("tr");
+          const opponent = match.opponentName || "Unknown";
+          const date = new Date(match.timestamp * 1000).toLocaleDateString();
+          const score = `${match.clubScore} - ${match.opponentScore}`;
+          const result = match.clubScore > match.opponentScore ? "Win" :
+                         match.clubScore < match.opponentScore ? "Loss" : "Draw";
+
+          row.innerHTML = `
+            <td>${date}</td>
+            <td>${opponent}</td>
+            <td>${score}</td>
+            <td>${result}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } catch (err) {
+        document.getElementById("match-history").innerHTML = `<p>Error loading match history: ${err.message}</p>`;
+      }
+    }
+
+    function toggleDetails() {
+      const history = document.getElementById("match-history");
+      history.style.display = history.style.display === "block" ? "none" : "block";
+    }
+
+    fetchPlayerStats();
+    fetchMatchHistory();
   </script>
 </body>
 </html>
