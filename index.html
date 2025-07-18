@@ -3,372 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pro Club Stats with League</title>
+  <title>Pro Club Stats with Matches</title>
   <style>
-    /* Reset & body */
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-      background-color: #f3f3f3;
-    }
-
-    /* Sidebar styles */
-    #sidebar {
-      width: 220px;
-      background-color: #222;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      padding-top: 20px;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.3);
-    }
-
-    #sidebar button {
-      background: none;
-      border: none;
-      color: white;
-      text-align: left;
-      padding: 15px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border-left: 4px solid transparent;
-      transition: background-color 0.3s, border-left-color 0.3s;
-    }
-
-    #sidebar button:hover {
-      background-color: #444;
-    }
-
-    #sidebar button.active {
-      border-left-color: #007bff;
-      background-color: #007bff;
-    }
-
-    /* Content area */
-    #content {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      background-color: white;
-    }
-
-    /* Hide views by default */
-    .view {
-      display: none;
-    }
-
-    .view.active {
-      display: block;
-    }
-
-    /* Your existing styles for cards and footer... */
-    h1 {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      justify-content: center;
-    }
-
-    .card {
-      color: white;
-      border-radius: 10px;
-      width: 300px;
-      height: 400px;
-      position: relative;
-      background-size: cover;
-      background-position: center;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      overflow: hidden;
-    }
-
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.6);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-    }
-
-    .overlay h2 {
-      margin: 0;
-    }
-
-    .badge {
-      background-color: #007bff;
-      color: white;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      margin-left: 8px;
-    }
-
-    .stats {
-      margin-top: 15px;
-      font-size: 14px;
-    }
-
-    .stats p {
-      margin: 4px 0;
-    }
-
-    .rank {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background-color: gold;
-      color: black;
-      font-weight: bold;
-      padding: 4px 10px;
-      border-radius: 50%;
-      font-size: 16px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
-    }
-
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      font-size: 14px;
-      color: #777;
-    }
-
-    /* League table styles */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px 12px;
-      text-align: center;
-    }
-
-    th {
-      background-color: #007bff;
-      color: white;
-    }
-
+    /* Your existing styles here */
   </style>
 </head>
 <body>
-  <div id="sidebar">
-    <button class="active" data-view="players-view">Players & Matches</button>
-    <button data-view="league-view">League Table</button>
-    <!-- Add more buttons here as needed -->
-  </div>
+  <h1>Pro Clubs Player Stats</h1>
+  <div id="player-container" class="container"></div>
 
-  <div id="content">
-    <!-- Players & Matches view -->
-    <section id="players-view" class="view active">
-      <h1>Pro Clubs Player Stats</h1>
-      <div class="container" id="player-container"></div>
-      <h1>Recent Matches</h1>
-      <div id="match-history"></div>
-      <footer id="footer"></footer>
-    </section>
+  <h1>Recent Match History</h1>
+  <div id="match-history"></div>
 
-    <!-- League Table view -->
-    <section id="league-view" class="view">
-      <h1>League Table</h1>
-      <table id="league-table">
-        <thead>
-          <tr>
-            <th>Position</th>
-            <th>Team</th>
-            <th>Points</th>
-            <th>Goal Difference</th>
-            <th>Wins</th>
-            <th>Draws</th>
-            <th>Losses</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- League teams go here -->
-        </tbody>
-      </table>
-    </section>
-  </div>
+  <footer id="footer"></footer>
 
-  <script>
-    // Sidebar button toggle logic
-    const buttons = document.querySelectorAll('#sidebar button');
-    const views = document.querySelectorAll('.view');
+<script>
+async function fetchData() {
+  try {
+    // Fetch players
+    const playersRes = await fetch('/api/players');
+    if (!playersRes.ok) throw new Error('Failed to fetch players');
+    const playersData = await playersRes.json();
 
-    buttons.forEach(button => {
-      button.addEventListener('click', () => {
-        // Remove active from all buttons
-        buttons.forEach(btn => btn.classList.remove('active'));
-        // Hide all views
-        views.forEach(view => view.classList.remove('active'));
+    // Fetch matches
+    const matchesRes = await fetch('/api/matches');
+    if (!matchesRes.ok) throw new Error('Failed to fetch matches');
+    const matchesData = await matchesRes.json();
 
-        // Activate clicked button and corresponding view
-        button.classList.add('active');
-        const viewId = button.getAttribute('data-view');
-        document.getElementById(viewId).classList.add('active');
-      });
-    });
+    // Process and render players
+    renderPlayers(playersData);
 
-    // --- Player and match code from before ---
-    async function fetchPlayerStats() {
-      try {
-        const res = await fetch('/api/players');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
+    // Process and render matches
+    renderMatches(matchesData);
+  } catch (err) {
+    console.error(err);
+    document.body.insertAdjacentHTML('beforeend', `<p style="color:red;">Error: ${err.message}</p>`);
+  }
+}
 
-        const imageMap = {
-          "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
-          "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
-          "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
-          "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
-          "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
-          "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
-        };
+function renderPlayers(data) {
+  const imageMap = {
+    "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+    "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+    "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+    "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+    "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+    "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
+  };
 
-        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
-        const players = data.members.map(player => ({
-          username: player.name,
-          proName: player.proName || player.name,
-          ovr: player.proOverall || 0,
-          role: player.favoritePosition || "forward",
-          image: imageMap[player.name] || '',
-          stats: {
-            games: player.gamesPlayed,
-            winRate: player.winRate,
-            goals: player.goals,
-            assists: player.assists,
-            shotSuccess: player.shotSuccessRate,
-            passes: `${player.passesMade} (${player.passSuccessRate}%)`,
-            rating: parseFloat(player.ratingAve),
-            tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
-          }
-        }));
+  const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+  const container = document.getElementById("player-container");
+  container.innerHTML = '';
 
-        players.sort((a, b) => b.stats.rating - a.stats.rating);
-
-        const container = document.getElementById("player-container");
-        container.innerHTML = ''; // clear old content
-        players.forEach((player, index) => {
-          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
-
-          const card = document.createElement("div");
-          card.className = "card";
-          card.style.backgroundImage = `url('${player.image}')`;
-          card.innerHTML = `
-            <div class="overlay">
-              <div class="rank">${index + 1}</div>
-              <h2>${player.username} <span class="badge">${player.role}</span></h2>
-              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
-              <div class="stats">
-                <p>Games Played: ${player.stats.games}</p>
-                <p>Win Rate: ${player.stats.winRate}%</p>
-                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
-                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
-                <p>Passes: ${player.stats.passes}</p>
-                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
-              </div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-
-        document.getElementById("footer").innerText =
-          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
-
-        // Also fetch and render matches
-        await fetchMatchHistory();
-
-      } catch (err) {
-        const container = document.getElementById("player-container");
-        container.innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
-        console.error(err);
-      }
+  const players = data.members.map(player => ({
+    username: player.name,
+    proName: player.proName || player.name,
+    ovr: player.proOverall || 0,
+    role: player.favoritePosition || "forward",
+    image: imageMap[player.name] || '',
+    stats: {
+      games: player.gamesPlayed,
+      winRate: player.winRate,
+      goals: player.goals,
+      assists: player.assists,
+      shotSuccess: player.shotSuccessRate,
+      passes: `${player.passesMade} (${player.passSuccessRate}%)`,
+      rating: parseFloat(player.ratingAve),
+      tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
     }
+  }));
 
-    async function fetchMatchHistory() {
-      try {
-        const res = await fetch('/api/matches');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const matches = await res.json();
+  players.sort((a,b) => b.stats.rating - a.stats.rating);
 
-        const matchHistoryDiv = document.getElementById("match-history");
-        matchHistoryDiv.innerHTML = ''; // clear old matches
+  players.forEach((player, idx) => {
+    roleCount[player.role] = (roleCount[player.role] || 0) + 1;
 
-        matches.forEach(match => {
-          const date = new Date(match.timestamp * 1000);
-          const dateStr = date.toLocaleDateString();
-          const homeTeam = match.homeTeam || 'Home';
-          const awayTeam = match.awayTeam || 'Away';
-          const homeScore = match.homeScore ?? 'N/A';
-          const awayScore = match.awayScore ?? 'N/A';
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.backgroundImage = `url('${player.image}')`;
+    card.innerHTML = `
+      <div class="overlay">
+        <div class="rank">${idx + 1}</div>
+        <h2>${player.username} <span class="badge">${player.role}</span></h2>
+        <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+        <div class="stats">
+          <p>Games Played: ${player.stats.games}</p>
+          <p>Win Rate: ${player.stats.winRate}%</p>
+          <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+          <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+          <p>Passes: ${player.stats.passes}</p>
+          <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
 
-          const matchDiv = document.createElement('div');
-          matchDiv.innerHTML = `<strong>Date:</strong> ${dateStr} | <strong>Score:</strong> ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`;
-          matchHistoryDiv.appendChild(matchDiv);
-        });
-      } catch (err) {
-        const matchHistoryDiv = document.getElementById("match-history");
-        matchHistoryDiv.innerHTML = `<p>Failed to fetch matches: ${err.message}</p>`;
-        console.error(err);
-      }
-    }
+  document.getElementById("footer").innerText =
+    `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+}
 
-    // --- League table data & render ---
+function renderMatches(matches) {
+  const matchHistoryDiv = document.getElementById('match-history');
+  matchHistoryDiv.innerHTML = '';
 
-    // Sample league data structure
-    const leagueTeams = [
-      { name: "Royal Republic", points: 18, goalsFor: 25, goalsAgainst: 10, wins: 6, draws: 0, losses: 2 },
-      { name: "Cruz Azul XI", points: 20, goalsFor: 28, goalsAgainst: 12, wins: 6, draws: 2, losses: 0 },
-      { name: "FC Example", points: 15, goalsFor: 20, goalsAgainst: 15, wins: 4, draws: 3, losses: 1 },
-    ];
+  matches.forEach(match => {
+    const date = new Date(match.timestamp * 1000);
+    const dateStr = date.toLocaleDateString();
 
-    function renderLeagueTable() {
-      const tbody = document.querySelector("#league-table tbody");
-      tbody.innerHTML = '';
+    const clubIds = Object.keys(match.clubs);
+    if(clubIds.length < 2) return; // skip incomplete
 
-      // Calculate goal difference for each team
-      leagueTeams.forEach(team => {
-        team.goalDifference = team.goalsFor - team.goalsAgainst;
-      });
+    const homeClub = match.clubs[clubIds[0]];
+    const awayClub = match.clubs[clubIds[1]];
 
-      // Sort by points desc, then goal difference desc
-      leagueTeams.sort((a, b) => {
-        if (b.points === a.points) {
-          return b.goalDifference - a.goalDifference;
-        }
-        return b.points - a.points;
-      });
+    const homeTeam = homeClub?.details?.name || "Home";
+    const awayTeam = awayClub?.details?.name || "Away";
+    const homeScore = homeClub?.goals || "N/A";
+    const awayScore = awayClub?.goals || "N/A";
 
-      leagueTeams.forEach((team, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${i + 1}</td>
-          <td>${team.name}</td>
-          <td>${team.points}</td>
-          <td>${team.goalDifference}</td>
-          <td>${team.wins}</td>
-          <td>${team.draws}</td>
-          <td>${team.losses}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+    const matchDiv = document.createElement('div');
+    matchDiv.textContent = `Date: ${dateStr} | Score: ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`;
+    matchHistoryDiv.appendChild(matchDiv);
+  });
+}
 
-    // Init
-    fetchPlayerStats();
-    renderLeagueTable();
-  </script>
+fetchData();
+</script>
 </body>
 </html>
