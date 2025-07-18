@@ -12,9 +12,9 @@
       padding: 20px;
     }
 
-    h1 {
+    h1, h2 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .container {
@@ -38,10 +38,8 @@
 
     .overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background-color: rgba(0,0,0,0.6);
       padding: 20px;
       display: flex;
@@ -73,8 +71,7 @@
 
     .rank {
       position: absolute;
-      top: 10px;
-      left: 10px;
+      top: 10px; left: 10px;
       background-color: gold;
       color: black;
       font-weight: bold;
@@ -91,43 +88,19 @@
       color: #777;
     }
 
-    /* Match history styles */
     #match-history {
-      margin-top: 50px;
       max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
+      margin: 30px auto;
       background: white;
+      padding: 15px 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-
-    #match-history h2 {
-      text-align: center;
-      margin-bottom: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
       color: #333;
-    }
-
-    .match-item {
-      border-bottom: 1px solid #ddd;
-      padding: 10px 0;
-      font-size: 14px;
-      color: #444;
-    }
-
-    .match-item:last-child {
-      border-bottom: none;
-    }
-
-    .match-date {
-      font-weight: bold;
-    }
-
-    .match-score {
-      margin-left: 10px;
-      font-style: italic;
-      color: #666;
+      font-family: monospace, monospace;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      max-height: 300px;
+      overflow-y: auto;
     }
   </style>
 </head>
@@ -136,37 +109,123 @@
   <div class="container" id="player-container"></div>
   <footer id="footer"></footer>
 
-  <div id="match-history">
-    <h2>Recent Match History</h2>
-    <div id="matches-container">Loading matches...</div>
-  </div>
+  <h2>Recent Match History</h2>
+  <div id="match-history">Loading matches...</div>
 
   <script>
-    // Image map for player photos
-    const imageMap = {
-      "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
-      "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
-      "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
-      "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
-      "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
-      "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
-    };
+    // Utility: format Unix timestamp (seconds) to readable date string
+    function formatDate(ts) {
+      const d = new Date(ts * 1000);
+      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+    }
 
-    async function fetchPlayerStats() {
+    // Render players to the DOM
+    function renderPlayers(players) {
+      const container = document.getElementById("player-container");
+      container.innerHTML = '';
+      const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+
+      players.forEach((player, index) => {
+        roleCount[player.role] = (roleCount[player.role] || 0) + 1;
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.backgroundImage = `url('${player.image}')`;
+        card.innerHTML = `
+          <div class="overlay">
+            <div class="rank">${index + 1}</div>
+            <h2>${player.username} <span class="badge">${player.role}</span></h2>
+            <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+            <div class="stats">
+              <p>Games Played: ${player.stats.games}</p>
+              <p>Win Rate: ${player.stats.winRate}%</p>
+              <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+              <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+              <p>Passes: ${player.stats.passes}</p>
+              <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById("footer").innerText =
+        `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+    }
+
+    // Render matches to the DOM
+    function renderMatches(matches) {
+      const div = document.getElementById("match-history");
+      if (!matches.length) {
+        div.textContent = 'No match history available.';
+        return;
+      }
+
+      const lines = matches.map(m => {
+        // Using your data structure: timestamp, clubs with goals, etc.
+        const date = formatDate(m.timestamp || m.date || 0);
+        // Find home and away clubs (first two keys in clubs object)
+        const clubKeys = Object.keys(m.clubs || {});
+        const homeClub = m.clubs[clubKeys[0]];
+        const awayClub = m.clubs[clubKeys[1]];
+        const homeName = homeClub?.details?.name || 'Home';
+        const awayName = awayClub?.details?.name || 'Away';
+        const homeScore = homeClub?.goals || homeClub?.score || 0;
+        const awayScore = awayClub?.goals || awayClub?.score || 0;
+        return `Date: ${date}\nScore: ${homeName} ${homeScore} - ${awayScore} ${awayName}`;
+      });
+
+      div.textContent = lines.join('\n\n');
+    }
+
+    // Load matches from localStorage
+    function loadStoredMatches() {
+      const stored = localStorage.getItem('recentMatches');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    }
+
+    // Save matches to localStorage
+    function saveStoredMatches(matches) {
+      localStorage.setItem('recentMatches', JSON.stringify(matches));
+    }
+
+    // Merge new matches with stored matches, avoiding duplicates by matchId
+    function mergeMatches(stored, fetched) {
+      const existingIds = new Set(stored.map(m => m.matchId));
+      const newUnique = fetched.filter(m => !existingIds.has(m.matchId));
+      return [...newUnique, ...stored].sort((a,b) => b.timestamp - a.timestamp);
+    }
+
+    // Main fetch function
+    async function fetchData() {
       try {
-        console.log('Fetching from /api/players...');
-        const res = await fetch('/api/players');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-        console.log('Player data:', data);
+        // Fetch players
+        console.log('Fetching players...');
+        const playerRes = await fetch('/api/players');
+        if (!playerRes.ok) throw new Error('Failed to fetch players');
+        const playerData = await playerRes.json();
 
-        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+        const imageMap = {
+          "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+          "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+          "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+          "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+          "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+          "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
+        };
 
-        const players = data.members.map(player => ({
+        const players = playerData.members.map(player => ({
           username: player.name,
           proName: player.proName || player.name,
           ovr: player.proOverall || 0,
-          role: player.favoritePosition || "Forward",
+          role: player.favoritePosition || "forward",
           image: imageMap[player.name] || '',
           stats: {
             games: player.gamesPlayed,
@@ -182,90 +241,34 @@
 
         players.sort((a, b) => b.stats.rating - a.stats.rating);
 
-        const container = document.getElementById("player-container");
-        container.innerHTML = ""; // Clear before adding
+        renderPlayers(players);
 
-        players.forEach((player, index) => {
-          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
+        // Fetch matches
+        console.log('Fetching matches...');
+        const matchRes = await fetch('/api/matches');
+        if (!matchRes.ok) throw new Error('Failed to fetch matches');
+        const fetchedMatches = await matchRes.json();
 
-          const card = document.createElement("div");
-          card.className = "card";
-          card.style.backgroundImage = `url('${player.image}')`;
-          card.innerHTML = `
-            <div class="overlay">
-              <div class="rank">${index + 1}</div>
-              <h2>${player.username} <span class="badge">${player.role}</span></h2>
-              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
-              <div class="stats">
-                <p>Games Played: ${player.stats.games}</p>
-                <p>Win Rate: ${player.stats.winRate}%</p>
-                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
-                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
-                <p>Passes: ${player.stats.passes}</p>
-                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
-              </div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
+        // Load stored matches
+        const storedMatches = loadStoredMatches();
 
-        document.getElementById("footer").innerText =
-          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+        // Merge without duplicates
+        const mergedMatches = mergeMatches(storedMatches, fetchedMatches);
+
+        // Save merged matches to localStorage
+        saveStoredMatches(mergedMatches);
+
+        // Render merged matches
+        renderMatches(mergedMatches);
 
       } catch (err) {
-        document.getElementById("player-container").innerHTML = `<p>Error loading player stats: ${err.message}</p>`;
-        console.error('Player stats error:', err);
+        console.error('Error fetching data:', err);
+        document.getElementById('player-container').innerHTML = `<p>Error: ${err.message}</p>`;
+        document.getElementById('match-history').textContent = `Error: ${err.message}`;
       }
     }
 
-    async function fetchMatchHistory() {
-      try {
-        console.log('Fetching from /api/matches...');
-        const res = await fetch('/api/matches');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-        console.log('Match data:', data);
-
-        const matchesContainer = document.getElementById("matches-container");
-        matchesContainer.innerHTML = ""; // Clear loading text
-
-        if (!Array.isArray(data) || data.length === 0) {
-          matchesContainer.innerHTML = "<p>No match history available.</p>";
-          return;
-        }
-
-        data.forEach(match => {
-          // Defensive: check if clubs data exists
-          const clubs = match.clubs || {};
-          // Extract home and away info by club keys (assumption: exactly two keys)
-          const clubKeys = Object.keys(clubs);
-          let homeClub = clubs[clubKeys[0]]?.details?.name || "Home";
-          let awayClub = clubs[clubKeys[1]]?.details?.name || "Away";
-
-          let homeGoals = clubs[clubKeys[0]]?.goals || "?";
-          let awayGoals = clubs[clubKeys[1]]?.goals || "?";
-
-          // Convert timestamp (assumed unix) to date string:
-          const dateObj = new Date(match.timestamp * 1000); 
-          const dateStr = dateObj.toLocaleDateString();
-
-          const div = document.createElement("div");
-          div.className = "match-item";
-          div.innerHTML = `<span class="match-date">${dateStr}</span> - 
-                           <span class="match-score">${homeClub} ${homeGoals} - ${awayGoals} ${awayClub}</span>`;
-          matchesContainer.appendChild(div);
-        });
-
-      } catch (err) {
-        const matchesContainer = document.getElementById("matches-container");
-        matchesContainer.innerHTML = `<p>Error loading match history: ${err.message}</p>`;
-        console.error('Match history error:', err);
-      }
-    }
-
-    // Run both fetches in parallel:
-    fetchPlayerStats();
-    fetchMatchHistory();
+    fetchData();
   </script>
 </body>
 </html>
