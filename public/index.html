@@ -31,6 +31,20 @@
       padding: 16px;
       box-shadow: 0 0 10px rgba(0,0,0,0.4);
       text-align: center;
+      transition: transform 0.2s ease;
+    }
+
+    .player-card:hover {
+      transform: scale(1.03);
+    }
+
+    .player-card img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border: 2px solid #00d9ff;
     }
 
     .player-card h2 {
@@ -75,7 +89,12 @@
         Object.values(members).forEach(player => {
           const card = document.createElement('div');
           card.className = 'player-card';
+
+          // Placeholder image since EA doesn’t give direct profile images
+          const imgSrc = 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png';
+
           card.innerHTML = `
+            <img src="${imgSrc}" alt="${player.name} avatar" />
             <h2>${player.name}</h2>
             <div class="stat">Rating: ${player.overallRating}</div>
             <div class="stat">Goals: ${player.goals}</div>
