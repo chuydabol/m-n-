@@ -1,71 +1,64 @@
 // server.js
 const express = require('express');
-const fetch = require('node-fetch');
-const db = require('./firebase');
+const fetch = require('node-fetch'); // Use node-fetch v2 for CommonJS
+const path = require('path');
 const app = express();
+
 const PORT = process.env.PORT || 10000;
 
-app.use(express.static('public'));
+// Serve static files from the root directory (index.html, etc.)
+app.use(express.static(__dirname));
 
-// Test endpoint to confirm server is up
-app.get('/api/status', (req, res) => {
-  res.json({ status: 'Server is running' });
-});
-
+// === Route: Player Stats ===
 app.get('/api/players', async (req, res) => {
-  console.log('Fetching player stats from EA API...');
+  console.log('📥 Request: /api/players');
   try {
-    const response = await fetch('https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2491998');
-
-    console.log('EA /players response status:', response.status);
+    const response = await fetch('https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2491998', {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 10000
+    });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('EA /players response body (error):', errorText);
-      return res.status(500).json({ error: 'Failed to fetch player stats from EA' });
+      console.error('❌ EA /players error:', response.status);
+      return res.status(response.status).json({ error: 'EA API error on /players' });
     }
 
     const data = await response.json();
-    console.log('EA /players data keys:', Object.keys(data));
     res.json(data);
   } catch (err) {
-    console.error('Error in /api/players:', err);
-    res.status(500).json({ error: 'Failed to fetch player stats' });
+    console.error('❌ Error fetching /players:', err.message);
+    res.status(500).json({ error: 'Failed to fetch player stats', details: err.message });
   }
 });
 
+// === Route: Match History ===
 app.get('/api/matches', async (req, res) => {
-  console.log('Fetching match history from EA API...');
+  console.log('📥 Request: /api/matches');
   try {
-    const response = await fetch('https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=common-gen5&clubIds=2491998');
-
-    console.log('EA /matches response status:', response.status);
+    const response = await fetch('https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=common-gen5&clubIds=2491998', {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 10000
+    });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('EA /matches response body (error):', errorText);
-      return res.status(500).json({ error: 'Failed to fetch match history from EA' });
+      console.error('❌ EA /matches error:', response.status);
+      return res.status(response.status).json({ error: 'EA API error on /matches' });
     }
 
-    const matches = await response.json();
-    console.log('EA /matches received:', matches.length, 'matches');
-
-    // Save to Firebase
-    const batch = db.batch();
-    matches.forEach(match => {
-      const matchRef = db.collection('matches').doc(String(match.matchId));
-      batch.set(matchRef, match, { merge: true });
-    });
-    await batch.commit();
-    console.log('Successfully saved matches to Firebase.');
-
-    res.json(matches);
+    const data = await response.json();
+    res.json(data);
   } catch (err) {
-    console.error('Error in /api/matches:', err);
-    res.status(500).json({ error: 'Failed to fetch match history' });
+    console.error('❌ Error fetching /matches:', err.message);
+    res.status(500).json({ error: 'Failed to fetch match history', details: err.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// === Route: Serve HTML ===
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// === Start Server ===
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
 });
