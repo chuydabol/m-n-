@@ -1,20 +1,20 @@
-
 const express = require('express');
-const fetch = require('node-fetch'); // v2
+const fetch = require('node-fetch'); // make sure v2 installed for CommonJS
 const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 80;
 
-// Serve static files (like index.html, JS, CSS)
+// Serve static files (like index.html, CSS, JS)
 app.use(express.static(__dirname));
 
-// Optional CORS header (remove if not needed)
+// Optional: CORS headers if needed
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 });
 
-// === Route: Get Player Stats ===
+// Route: Get Player Stats
 app.get('/api/players', async (req, res) => {
   console.log('GET /api/players');
   try {
@@ -38,7 +38,7 @@ app.get('/api/players', async (req, res) => {
   }
 });
 
-// === NEW Route: Get Match History ===
+// Route: Get Match History
 app.get('/api/matches', async (req, res) => {
   console.log('GET /api/matches');
   try {
@@ -55,6 +55,10 @@ app.get('/api/matches', async (req, res) => {
     }
 
     const data = await response.json();
+
+    // Log the full data to inspect structure for debugging
+    console.log('Match history data:', JSON.stringify(data, null, 2));
+
     res.json(data);
   } catch (err) {
     console.error('Server error fetching matches:', err.message);
@@ -62,11 +66,12 @@ app.get('/api/matches', async (req, res) => {
   }
 });
 
-// === Serve index.html ===
+// Serve the index.html page on root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
