@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pro Club Stats</title>
+  <title>Pro Club Stats with Match History</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,19 +14,7 @@
 
     h1 {
       text-align: center;
-      margin-bottom: 20px;
-    }
-
-    #toggleProjection {
-      display: block;
-      margin: 0 auto 30px auto;
-      padding: 10px 20px;
-      font-size: 14px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      margin-bottom: 30px;
     }
 
     .container {
@@ -102,12 +90,45 @@
       font-size: 14px;
       color: #777;
     }
+
+    /* Match History styles */
+    #matches-container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    #matches-container h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .match-card {
+      border-bottom: 1px solid #ddd;
+      padding: 12px 0;
+    }
+
+    .match-card:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 <body>
   <h1>Pro Clubs Player Stats</h1>
   <button id="toggleProjection">🔮 Show Projections</button>
   <div class="container" id="player-container"></div>
+
+  <!-- Match History Section -->
+  <div id="matches-container">
+    <h2>Match History</h2>
+    <div id="matches">Loading matches...</div>
+  </div>
+
   <footer id="footer"></footer>
 
   <script>
@@ -115,16 +136,12 @@
 
     async function fetchPlayerStats() {
       try {
-        console.log('Fetching from /api/players...');
         const res = await fetch('/api/players');
-        console.log('Response status:', res.status);
-
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-
+        
         const data = await res.json();
-        console.log('Received data:', data);
 
         const imageMap = {
           "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
@@ -136,14 +153,15 @@
         };
 
         const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+
         const players = data.members.map(player => ({
           username: player.name,
           proName: player.proName || player.name,
           ovr: player.proOverall || 0,
-          role: player.favoritePosition || "forward",
+          role: player.favoritePosition || "Forward",
           image: imageMap[player.name] || '',
           stats: {
-            games: player.gamesPlayed || 1,
+            games: player.gamesPlayed || 0,
             winRate: player.winRate || 0,
             goals: player.goals || 0,
             assists: player.assists || 0,
@@ -154,23 +172,29 @@
           }
         }));
 
+        // Calculate projections for goals and assists
+        players.forEach(p => {
+          const g = p.stats.goals;
+          const a = p.stats.assists;
+          const gp = p.stats.games || 1;  // prevent divide by zero
+          p.projections = {
+            goals: Math.round((g / gp) * 500),
+            assists: Math.round((a / gp) * 500)
+          };
+        });
+
         players.sort((a, b) => b.stats.rating - a.stats.rating);
 
         const container = document.getElementById("player-container");
-        container.innerHTML = ''; // clear
+        container.innerHTML = '';
 
         players.forEach((player, index) => {
           roleCount[player.role] = (roleCount[player.role] || 0) + 1;
 
           const card = document.createElement("div");
           card.className = "card";
-
-          // Set data attributes for projections toggle
-          card.setAttribute('data-goals', player.stats.goals);
-          card.setAttribute('data-assists', player.stats.assists);
-          card.setAttribute('data-games', player.stats.games);
-
           card.style.backgroundImage = `url('${player.image}')`;
+
           card.innerHTML = `
             <div class="overlay">
               <div class="rank">${index + 1}</div>
@@ -179,50 +203,107 @@
               <div class="stats">
                 <p>Games Played: ${player.stats.games}</p>
                 <p>Win Rate: ${player.stats.winRate}%</p>
-                <p class="stats-goals-assists">Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+                <p class="goals-assists" data-real-goals="${player.stats.goals}" data-real-assists="${player.stats.assists}">
+                  Goals: <span>${player.stats.goals}</span> | Assists: <span>${player.stats.assists}</span>
+                </p>
                 <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
                 <p>Passes: ${player.stats.passes}</p>
                 <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
               </div>
             </div>
           `;
+
           container.appendChild(card);
         });
 
         document.getElementById("footer").innerText =
           `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+
       } catch (err) {
         document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
-        console.error('Error fetching data:', err);
+        console.error('Error fetching player stats:', err);
       }
     }
 
+    async function fetchMatchHistory() {
+      try {
+        const res = await fetch('/api/matches');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+        const data = await res.json();
+        const container = document.getElementById('matches');
+        container.innerHTML = '';
+
+        data.forEach(match => {
+          const date = new Date(match.timestamp * 1000).toLocaleDateString();
+
+          const homeClub = match.clubs && match.clubs[match.home] ? match.clubs[match.home].name : 'Home';
+          const awayClub = match.clubs && match.clubs[match.away] ? match.clubs[match.away].name : 'Away';
+
+          const matchDiv = document.createElement('div');
+          matchDiv.className = 'match-card';
+          matchDiv.innerHTML = `
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Score:</strong> ${homeClub} ${match.homeGoals} - ${match.awayGoals} ${awayClub}</p>
+          `;
+
+          container.appendChild(matchDiv);
+        });
+      } catch (err) {
+        console.error('Error loading match history:', err);
+        const container = document.getElementById('matches');
+        if(container) container.innerText = 'Error loading match history.';
+      }
+    }
+
+    // Toggle projection button event
     document.getElementById('toggleProjection').addEventListener('click', () => {
       projectionMode = !projectionMode;
       const button = document.getElementById('toggleProjection');
       const cards = document.querySelectorAll('.card');
-      const projectedGames = 500;
 
       cards.forEach(card => {
-        const realGoals = Number(card.getAttribute('data-goals'));
-        const realAssists = Number(card.getAttribute('data-assists'));
-        const gamesPlayed = Number(card.getAttribute('data-games')) || 1;
+        const goalsAssistsEl = card.querySelector('.goals-assists');
+        const realGoals = goalsAssistsEl.getAttribute('data-real-goals');
+        const realAssists = goalsAssistsEl.getAttribute('data-real-assists');
 
-        const projectedGoals = Math.round((realGoals / gamesPlayed) * projectedGames);
-        const projectedAssists = Math.round((realAssists / gamesPlayed) * projectedGames);
+        // Find player index to get projected stats
+        const index = Array.from(cards).indexOf(card);
+        const player = window.players ? window.players[index] : null;
 
-        const statsEl = card.querySelector('.stats-goals-assists');
-        if (projectionMode) {
-          statsEl.textContent = `Projected Goals: ${projectedGoals} | Projected Assists: ${projectedAssists}`;
-          button.textContent = '📊 Show Real Stats';
+        if (projectionMode && player) {
+          goalsAssistsEl.innerHTML = `Projected Goals: <span>${player.projections.goals}</span> | Projected Assists: <span>${player.projections.assists}</span>`;
         } else {
-          statsEl.textContent = `Goals: ${realGoals} | Assists: ${realAssists}`;
-          button.textContent = '🔮 Show Projections';
+          goalsAssistsEl.innerHTML = `Goals: <span>${realGoals}</span> | Assists: <span>${realAssists}</span>`;
         }
       });
+
+      button.innerText = projectionMode ? "📊 Show Real Stats" : "🔮 Show Projections";
     });
 
+    // Store players globally for projection toggle
+    async function init() {
+      try {
+        const res = await fetch('/api/players');
+        const data = await res.json();
+        window.players = data.members.map(player => ({
+          goals: player.goals || 0,
+          assists: player.assists || 0,
+          games: player.gamesPlayed || 1,
+          projections: {
+            goals: Math.round(((player.goals || 0) / (player.gamesPlayed || 1)) * 500),
+            assists: Math.round(((player.assists || 0) / (player.gamesPlayed || 1)) * 500),
+          }
+        }));
+      } catch {
+        window.players = [];
+      }
+    }
+
+    // Run on page load
     fetchPlayerStats();
+    fetchMatchHistory();
+    init();
   </script>
 </body>
 </html>
