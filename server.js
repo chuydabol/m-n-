@@ -1,20 +1,19 @@
 const express = require('express');
-const fetch = require('node-fetch'); // make sure v2 installed for CommonJS
+const fetch = require('node-fetch'); // Make sure this is v2 if using CommonJS
 const path = require('path');
-
 const app = express();
 const PORT = process.env.PORT || 80;
 
-// Serve static files (like index.html, CSS, JS)
+// === Static Files ===
 app.use(express.static(__dirname));
 
-// Optional: CORS headers if needed
+// === CORS Support (optional) ===
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 });
 
-// Route: Get Player Stats
+// === Route: Get Player Stats ===
 app.get('/api/players', async (req, res) => {
   console.log('GET /api/players');
   try {
@@ -38,7 +37,7 @@ app.get('/api/players', async (req, res) => {
   }
 });
 
-// Route: Get Match History
+// === Route: Get Match History ===
 app.get('/api/matches', async (req, res) => {
   console.log('GET /api/matches');
   try {
@@ -56,8 +55,12 @@ app.get('/api/matches', async (req, res) => {
 
     const data = await response.json();
 
-    // Log the full data to inspect structure for debugging
-    console.log('Match history data:', JSON.stringify(data, null, 2));
+    // Debug: Log first match to confirm structure
+    if (Array.isArray(data) && data.length > 0) {
+      console.log('Sample match data:', JSON.stringify(data[0], null, 2));
+    } else {
+      console.log('No matches returned');
+    }
 
     res.json(data);
   } catch (err) {
@@ -66,12 +69,12 @@ app.get('/api/matches', async (req, res) => {
   }
 });
 
-// Serve the index.html page on root
+// === Fallback Route: Serve index.html ===
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start server
+// === Start Server ===
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
