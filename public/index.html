@@ -1,53 +1,117 @@
-<script>
-  async function loadData() {
-    try {
-      // Fetch player stats
-      const playerRes = await fetch('/api/players');
-      const playerData = await playerRes.json();
-      const players = Object.values(playerData.members || {});
-
-      const container = document.getElementById('players');
-      container.innerHTML = '';
-
-      // Render player cards
-      players.forEach((player) => {
-        const card = document.createElement('div');
-        card.className = 'player-card';
-        card.innerHTML = `
-          <h2>${player.name}</h2>
-          <p>Rating: ${player.rating}</p>
-          <p>Goals: ${player.goals}</p>
-          <p>Assists: ${player.assists}</p>
-        `;
-        container.appendChild(card);
-      });
-
-      // Fetch match history
-      const matchRes = await fetch('/api/matches');
-      const matches = await matchRes.json();
-      console.log('Fetched matches:', matches);
-
-      const matchContainer = document.getElementById('matches');
-      if (matchContainer) {
-        matchContainer.innerHTML = '<h2>Recent Matches</h2>';
-        matches.slice(0, 5).forEach((match) => {
-          const div = document.createElement('div');
-          div.className = 'match';
-          div.innerHTML = `
-            <p><strong>Match ID:</strong> ${match.matchId}</p>
-            <p><strong>Result:</strong> ${match.clubs[2491998]?.matchResult || 'N/A'}</p>
-            <p><strong>Goals Scored:</strong> ${match.clubs[2491998]?.goals || 0}</p>
-            <hr />
-          `;
-          matchContainer.appendChild(div);
-        });
-      }
-
-    } catch (err) {
-      console.error('Error loading data:', err);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pro Clubs Player Stats</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+      color: #333;
     }
-  }
+    h1, h2 {
+      text-align: center;
+    }
+    #players, #matches {
+      max-width: 900px;
+      margin: 20px auto;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .player-card, .match {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+    .player-card:last-child, .match:last-child {
+      border-bottom: none;
+    }
+    .player-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 1.2rem;
+    }
+    .match p {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pro Clubs Player Stats</h1>
 
-  // Run on load
-  loadData();
-</script>
+  <div id="players">
+    <h2>Loading players...</h2>
+  </div>
+
+  <div id="matches">
+    <h2>Loading matches...</h2>
+  </div>
+
+  <script>
+    async function loadData() {
+      try {
+        // Fetch player stats
+        const playerRes = await fetch('/api/players');
+        const playerData = await playerRes.json();
+        const players = Object.values(playerData.members || {});
+
+        const container = document.getElementById('players');
+        container.innerHTML = '<h2>Players</h2>';
+
+        if (players.length === 0) {
+          container.innerHTML += '<p>No player data found.</p>';
+        } else {
+          players.forEach((player) => {
+            const card = document.createElement('div');
+            card.className = 'player-card';
+            card.innerHTML = `
+              <h3>${player.name}</h3>
+              <p>Overall Rating: ${player.proOverall || 'N/A'}</p>
+              <p>Games Played: ${player.gamesPlayed || 0}</p>
+              <p>Goals: ${player.goals || 0} | Assists: ${player.assists || 0}</p>
+              <p>Win Rate: ${player.winRate || 0}%</p>
+            `;
+            container.appendChild(card);
+          });
+        }
+
+        // Fetch match history
+        const matchRes = await fetch('/api/matches');
+        const matches = await matchRes.json();
+
+        const matchContainer = document.getElementById('matches');
+        matchContainer.innerHTML = '<h2>Recent Matches</h2>';
+
+        if (!matches || matches.length === 0) {
+          matchContainer.innerHTML += '<p>No match data found.</p>';
+        } else {
+          matches.slice(0, 5).forEach((match) => {
+            const div = document.createElement('div');
+            div.className = 'match';
+            // Some matches might not have clubs data for your clubId, fallback accordingly
+            const clubData = match.clubs && match.clubs['2491998'] ? match.clubs['2491998'] : {};
+            div.innerHTML = `
+              <p><strong>Date:</strong> ${new Date(match.timestamp * 1000).toLocaleDateString()}</p>
+              <p><strong>Opponent:</strong> ${match.opponentName || 'Unknown'}</p>
+              <p><strong>Result:</strong> ${clubData.matchResult || 'N/A'}</p>
+              <p><strong>Score:</strong> ${match.clubScore} - ${match.opponentScore}</p>
+              <hr/>
+            `;
+            matchContainer.appendChild(div);
+          });
+        }
+
+      } catch (err) {
+        console.error('Error loading data:', err);
+        document.getElementById('players').innerHTML = '<p>Error loading players.</p>';
+        document.getElementById('matches').innerHTML = '<p>Error loading matches.</p>';
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
