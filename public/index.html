@@ -2,165 +2,270 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pro Clubs Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pro Club Stats</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
+      background-color: #f3f3f3;
       margin: 0;
       padding: 20px;
     }
 
     h1 {
       text-align: center;
-      color: #222;
+      margin-bottom: 30px;
     }
 
-    .section {
-      max-width: 900px;
-      margin: 40px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .player-card {
+    .container {
       display: flex;
-      align-items: center;
-      border-bottom: 1px solid #ddd;
-      padding: 16px 0;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
     }
 
-    .player-card:last-child {
-      border-bottom: none;
+    .card {
+      color: white;
+      border-radius: 10px;
+      width: 300px;
+      height: 400px;
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      overflow: hidden;
     }
 
-    .player-card img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      margin-right: 20px;
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
     }
 
-    .match-card {
-      border-bottom: 1px solid #ddd;
-      padding: 12px 0;
-    }
-
-    .match-card:last-child {
-      border-bottom: none;
-    }
-
-    .player-info h3 {
+    .overlay h2 {
       margin: 0;
     }
 
-    .player-info p {
+    .badge {
+      background-color: #007bff;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+
+    .stats {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .stats p {
       margin: 4px 0;
+    }
+
+    .rank {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: gold;
+      color: black;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 50%;
+      font-size: 16px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #777;
+    }
+
+    /* Match history styles */
+    #match-history {
+      margin-top: 50px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+
+    #match-history h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .match-item {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .match-item:last-child {
+      border-bottom: none;
+    }
+
+    .match-date {
+      font-weight: bold;
+    }
+
+    .match-score {
+      margin-left: 10px;
+      font-style: italic;
+      color: #666;
     }
   </style>
 </head>
 <body>
-  <h1>Pro Clubs Dashboard</h1>
+  <h1>Pro Clubs Player Stats</h1>
+  <div class="container" id="player-container"></div>
+  <footer id="footer"></footer>
 
-  <div class="section">
-    <h2>Player Stats</h2>
-    <div id="players">Loading players...</div>
-  </div>
-
-  <div class="section">
-    <h2>Match History</h2>
-    <div id="matches">Loading matches...</div>
+  <div id="match-history">
+    <h2>Recent Match History</h2>
+    <div id="matches-container">Loading matches...</div>
   </div>
 
   <script>
-    const CLUB_ID = "2491998"; // Your club ID
+    // Image map for player photos
+    const imageMap = {
+      "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+      "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+      "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+      "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+      "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+      "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
+    };
 
-    function calculateProjections(goals, assists, gamesPlayed) {
-      const projectedGames = 38; // Project to a 38-game season
-      if (gamesPlayed === 0) return { projGoals: 0, projAssists: 0 };
-      const multiplier = projectedGames / gamesPlayed;
-      return {
-        projGoals: Math.round(goals * multiplier),
-        projAssists: Math.round(assists * multiplier)
-      };
-    }
-
-    async function fetchPlayers() {
+    async function fetchPlayerStats() {
       try {
+        console.log('Fetching from /api/players...');
         const res = await fetch('/api/players');
-        if (!res.ok) throw new Error(`Failed to fetch players: ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        console.log('Player data:', data);
 
-        const players = data.members || {};
-        const container = document.getElementById('players');
-        container.innerHTML = '';
+        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
 
-        Object.values(players).forEach(player => {
-          const { projGoals, projAssists } = calculateProjections(player.goals, player.assists, player.gamesPlayed);
+        const players = data.members.map(player => ({
+          username: player.name,
+          proName: player.proName || player.name,
+          ovr: player.proOverall || 0,
+          role: player.favoritePosition || "Forward",
+          image: imageMap[player.name] || '',
+          stats: {
+            games: player.gamesPlayed,
+            winRate: player.winRate,
+            goals: player.goals,
+            assists: player.assists,
+            shotSuccess: player.shotSuccessRate,
+            passes: `${player.passesMade} (${player.passSuccessRate}%)`,
+            rating: parseFloat(player.ratingAve),
+            tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
+          }
+        }));
 
-          const div = document.createElement('div');
-          div.className = 'player-card';
-          div.innerHTML = `
-            <img src="https://avatar.keenetic.link/${player.name}" alt="${player.name}" />
-            <div class="player-info">
-              <h3>${player.name}</h3>
-              <p>Rating: ${player.overallRating}</p>
-              <p>Games: ${player.gamesPlayed}</p>
-              <p>Goals: ${player.goals} (Proj: ${projGoals})</p>
-              <p>Assists: ${player.assists} (Proj: ${projAssists})</p>
+        players.sort((a, b) => b.stats.rating - a.stats.rating);
+
+        const container = document.getElementById("player-container");
+        container.innerHTML = ""; // Clear before adding
+
+        players.forEach((player, index) => {
+          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
+
+          const card = document.createElement("div");
+          card.className = "card";
+          card.style.backgroundImage = `url('${player.image}')`;
+          card.innerHTML = `
+            <div class="overlay">
+              <div class="rank">${index + 1}</div>
+              <h2>${player.username} <span class="badge">${player.role}</span></h2>
+              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+              <div class="stats">
+                <p>Games Played: ${player.stats.games}</p>
+                <p>Win Rate: ${player.stats.winRate}%</p>
+                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+                <p>Passes: ${player.stats.passes}</p>
+                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+              </div>
             </div>
           `;
-          container.appendChild(div);
+          container.appendChild(card);
         });
+
+        document.getElementById("footer").innerText =
+          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+
       } catch (err) {
-        console.error('Error loading players:', err);
-        document.getElementById('players').innerText = 'Error loading player stats.';
+        document.getElementById("player-container").innerHTML = `<p>Error loading player stats: ${err.message}</p>`;
+        console.error('Player stats error:', err);
       }
     }
 
-    function renderMatch(match) {
-      const clubs = match.clubs;
-      const timestamp = match.timestamp;
-
-      const opponentId = Object.keys(clubs).find(id => id !== CLUB_ID);
-      const ourClub = clubs[CLUB_ID];
-      const opponentClub = clubs[opponentId];
-
-      if (!ourClub || !opponentClub) return ''; // skip broken matches
-
-      const ourScore = ourClub.score;
-      const opponentScore = opponentClub.score;
-      const ourName = ourClub.details?.name || 'Home';
-      const opponentName = opponentClub.details?.name || 'Away';
-
-      const date = new Date(timestamp * 1000).toLocaleDateString();
-
-      return `
-        <div class="match-card">
-          <p><strong>Date:</strong> ${date}</p>
-          <p><strong>Score:</strong> ${ourName} ${ourScore} - ${opponentScore} ${opponentName}</p>
-        </div>
-      `;
-    }
-
-    async function fetchMatches() {
+    async function fetchMatchHistory() {
       try {
+        console.log('Fetching from /api/matches...');
         const res = await fetch('/api/matches');
-        if (!res.ok) throw new Error(`Failed to fetch matches: ${res.status}`);
-        const matches = await res.json();
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        console.log('Match data:', data);
 
-        const container = document.getElementById('matches');
-        container.innerHTML = '';
+        const matchesContainer = document.getElementById("matches-container");
+        matchesContainer.innerHTML = ""; // Clear loading text
 
-        matches.forEach(match => {
-          const html = renderMatch(match);
-          if (html) container.innerHTML += html;
+        if (!Array.isArray(data) || data.length === 0) {
+          matchesContainer.innerHTML = "<p>No match history available.</p>";
+          return;
+        }
+
+        data.forEach(match => {
+          // Defensive: check if clubs data exists
+          const clubs = match.clubs || {};
+          // Extract home and away info by club keys (assumption: exactly two keys)
+          const clubKeys = Object.keys(clubs);
+          let homeClub = clubs[clubKeys[0]]?.details?.name || "Home";
+          let awayClub = clubs[clubKeys[1]]?.details?.name || "Away";
+
+          let homeGoals = clubs[clubKeys[0]]?.goals || "?";
+          let awayGoals = clubs[clubKeys[1]]?.goals || "?";
+
+          // Convert timestamp (assumed unix) to date string:
+          const dateObj = new Date(match.timestamp * 1000); 
+          const dateStr = dateObj.toLocaleDateString();
+
+          const div = document.createElement("div");
+          div.className = "match-item";
+          div.innerHTML = `<span class="match-date">${dateStr}</span> - 
+                           <span class="match-score">${homeClub} ${homeGoals} - ${awayGoals} ${awayClub}</span>`;
+          matchesContainer.appendChild(div);
         });
+
       } catch (err) {
-        console.error('Error loading matches:', err);
-        document.getElementById('matches').innerText = 'Error loading match history.';
+        const matchesContainer = document.getElementById("matches-container");
+        matchesContainer.innerHTML = `<p>Error loading match history: ${err.message}</p>`;
+        console.error('Match history error:', err);
       }
     }
+
+    // Run both fetches in parallel:
+    fetchPlayerStats();
+    fetchMatchHistory();
+  </script>
+</body>
+</html>
