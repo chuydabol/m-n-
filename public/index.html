@@ -5,11 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pro Club Stats</title>
   <style>
+    :root {
+      --bg-light: #f3f3f3;
+      --text-light: #333;
+      --card-bg-light: rgba(0, 0, 0, 0.6);
+      --badge-bg-light: #007bff;
+      --footer-text-light: #777;
+
+      --bg-dark: #121212;
+      --text-dark: #ddd;
+      --card-bg-dark: rgba(255, 255, 255, 0.15);
+      --badge-bg-dark: #3399ff;
+      --footer-text-dark: #aaa;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background-color: #f3f3f3;
       margin: 0;
       padding: 20px;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
     }
 
     h1, h2 {
@@ -34,17 +55,23 @@
       background-position: center;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       overflow: hidden;
+      transition: background-color 0.3s ease;
     }
 
-    .overlay {
+    .card .overlay {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.6);
+      background-color: var(--card-bg-light);
       padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
+      transition: background-color 0.3s ease;
+    }
+
+    body.dark .card .overlay {
+      background-color: var(--card-bg-dark);
     }
 
     .overlay h2 {
@@ -52,12 +79,17 @@
     }
 
     .badge {
-      background-color: #007bff;
+      background-color: var(--badge-bg-light);
       color: white;
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 12px;
       margin-left: 8px;
+      transition: background-color 0.3s ease;
+    }
+
+    body.dark .badge {
+      background-color: var(--badge-bg-dark);
     }
 
     .stats {
@@ -79,13 +111,19 @@
       border-radius: 50%;
       font-size: 16px;
       box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      transition: background-color 0.3s ease;
     }
 
     footer {
       text-align: center;
       margin-top: 40px;
       font-size: 14px;
-      color: #777;
+      color: var(--footer-text-light);
+      transition: color 0.3s ease;
+    }
+
+    body.dark footer {
+      color: var(--footer-text-dark);
     }
 
     #match-history {
@@ -101,10 +139,41 @@
       line-height: 1.4;
       max-height: 300px;
       overflow-y: auto;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
+
+    body.dark #match-history {
+      background: #222;
+      color: #ddd;
+      box-shadow: 0 0 8px rgba(255,255,255,0.1);
+    }
+
+    /* Dark mode toggle button */
+    #dark-mode-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--badge-bg-light);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: background-color 0.3s ease;
+      z-index: 1000;
+    }
+
+    body.dark #dark-mode-toggle {
+      background: var(--badge-bg-dark);
+    }
+
   </style>
 </head>
 <body>
+  <button id="dark-mode-toggle" aria-label="Toggle dark mode">🌙 Dark Mode</button>
+
   <h1>Pro Clubs Player Stats</h1>
   <div class="container" id="player-container"></div>
   <footer id="footer"></footer>
@@ -113,6 +182,34 @@
   <div id="match-history">Loading matches...</div>
 
   <script>
+    // Dark mode toggle
+    const toggleBtn = document.getElementById('dark-mode-toggle');
+
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark');
+        toggleBtn.textContent = '☀️ Light Mode';
+        localStorage.setItem('darkMode', 'true');
+      } else {
+        document.body.classList.remove('dark');
+        toggleBtn.textContent = '🌙 Dark Mode';
+        localStorage.setItem('darkMode', 'false');
+      }
+    }
+
+    // Initialize dark mode from localStorage
+    const savedDarkMode = localStorage.getItem('darkMode');
+    if (savedDarkMode === 'true') {
+      setDarkMode(true);
+    } else {
+      setDarkMode(false);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      const isDark = document.body.classList.contains('dark');
+      setDarkMode(!isDark);
+    });
+
     // Utility: format Unix timestamp (seconds) to readable date string
     function formatDate(ts) {
       const d = new Date(ts * 1000);
