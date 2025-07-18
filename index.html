@@ -1,343 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pro Club Stats</title>
-<style>
-  /* Reset and base */
-  body {
-    margin: 0;
-    padding: 20px 20px 20px 70px;
-    font-family: Arial, sans-serif;
-    background-color: #f3f3f3;
-    color: #222;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark {
-    background-color: #121212;
-    color: #eee;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pro Club Stats</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      margin: 0;
+      padding: 20px;
+    }
 
-  /* Sidebar */
-  #sidebar {
-    position: fixed;
-    top: 0; left: 0;
-    width: 60px;
-    height: 100%;
-    background-color: #222;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 10px 0;
-    transition: background-color 0.3s;
-    z-index: 10;
-  }
-  #sidebar.dark {
-    background-color: #000;
-  }
-  #sidebar button {
-    background: none;
-    border: none;
-    color: #ccc;
-    margin: 15px 0;
-    cursor: pointer;
-    font-size: 18px;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  #sidebar button.active,
-  #sidebar button:hover {
-    background-color: #007bff;
-    color: white;
-  }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-  /* Containers */
-  .content-section {
-    display: none;
-    max-width: 1000px;
-    margin: auto;
-  }
-  .content-section.active {
-    display: block;
-  }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
 
-  /* Player container */
-  .container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-  }
+    .card {
+      color: white;
+      border-radius: 10px;
+      width: 300px;
+      height: 400px;
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
 
-  /* Cards */
-  .card {
-    color: white;
-    border-radius: 10px;
-    width: 300px;
-    height: 400px;
-    position: relative;
-    background-size: cover;
-    background-position: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    overflow: hidden;
-  }
-  body.dark .card {
-    box-shadow: 0 2px 12px rgba(255,255,255,0.15);
-  }
-  .overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.6);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-  }
-  .overlay h2 {
-    margin: 0;
-  }
-  .badge {
-    background-color: #007bff;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    margin-left: 8px;
-  }
-  .stats {
-    margin-top: 15px;
-    font-size: 14px;
-  }
-  .stats p {
-    margin: 4px 0;
-  }
-  .rank {
-    position: absolute;
-    top: 10px; left: 10px;
-    background-color: gold;
-    color: black;
-    font-weight: bold;
-    padding: 4px 10px;
-    border-radius: 50%;
-    font-size: 16px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.3);
-  }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
 
-  /* Match History */
-  #match-history {
-    max-width: 700px;
-    margin: 20px auto;
-  }
-  #match-history div {
-    background-color: #007bff;
-    color: white;
-    margin: 8px 0;
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-weight: bold;
-  }
-  body.dark #match-history div {
-    background-color: #0056b3;
-  }
+    .overlay h2 {
+      margin: 0;
+    }
 
-  /* Footer */
-  footer {
-    text-align: center;
-    margin-top: 40px;
-    font-size: 14px;
-    color: #777;
-  }
-  body.dark footer {
-    color: #aaa;
-  }
-</style>
+    .badge {
+      background-color: #007bff;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+
+    .stats {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .stats p {
+      margin: 4px 0;
+    }
+
+    .rank {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: gold;
+      color: black;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 50%;
+      font-size: 16px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
 </head>
 <body>
-  <nav id="sidebar" aria-label="Main navigation">
-    <button id="btn-players" title="Players" class="active">👤</button>
-    <button id="btn-matches" title="Matches">⚽</button>
-    <button id="btn-league" title="League">🏆</button>
-    <button id="btn-toggle-dark" title="Toggle Dark Mode">🌙</button>
-  </nav>
+  <h1>Pro Clubs Player Stats</h1>
+  <div class="container" id="player-container"></div>
+  <footer id="footer"></footer>
 
-  <main>
-    <section id="players-section" class="content-section active" aria-label="Player Stats">
-      <h1>Pro Clubs Player Stats</h1>
-      <div id="player-container" class="container"></div>
-    </section>
+  <script>
+    async function fetchPlayerStats() {
+      try {
+        console.log('Fetching from /api/players...');
+        const res = await fetch('/api/players');
+        console.log('Response status:', res.status);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log('Received data:', data);
 
-    <section id="matches-section" class="content-section" aria-label="Match History">
-      <h1>Recent Match History</h1>
-      <div id="match-history"></div>
-    </section>
+        const imageMap = {
+          "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
+          "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
+          "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
+          "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
+          "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
+          "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
+        };
 
-    <section id="league-section" class="content-section" aria-label="League Table">
-      <h1>League Standings</h1>
-      <div id="league-table">
-        <p>League system coming soon!</p>
-      </div>
-    </section>
+        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
 
-    <footer id="footer"></footer>
-  </main>
+        const players = data.members.map(player => {
+          const totalContributions = (player.goals || 0) + (player.assists || 0);
+          return {
+            username: player.name,
+            proName: player.proName || player.name,
+            ovr: player.proOverall || 0,
+            role: player.favoritePosition || "forward",
+            image: imageMap[player.name] || '',
+            stats: {
+              games: player.gamesPlayed,
+              winRate: player.winRate,
+              goals: player.goals,
+              assists: player.assists,
+              shotSuccess: player.shotSuccessRate,
+              passes: `${player.passesMade} (${player.passSuccessRate}%)`,
+              rating: parseFloat(player.ratingAve),
+              tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`,
+              totalContributions
+            }
+          };
+        });
 
-<script>
-  // Sidebar button toggling
-  const btnPlayers = document.getElementById('btn-players');
-  const btnMatches = document.getElementById('btn-matches');
-  const btnLeague = document.getElementById('btn-league');
-  const btnToggleDark = document.getElementById('btn-toggle-dark');
+        // Sort descending by total goals + assists
+        players.sort((a, b) => b.stats.totalContributions - a.stats.totalContributions);
 
-  const playersSection = document.getElementById('players-section');
-  const matchesSection = document.getElementById('matches-section');
-  const leagueSection = document.getElementById('league-section');
+        const container = document.getElementById("player-container");
+        container.innerHTML = ""; // Clear previous content
 
-  function showSection(section) {
-    playersSection.classList.remove('active');
-    matchesSection.classList.remove('active');
-    leagueSection.classList.remove('active');
+        players.forEach((player, index) => {
+          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
 
-    btnPlayers.classList.remove('active');
-    btnMatches.classList.remove('active');
-    btnLeague.classList.remove('active');
+          const card = document.createElement("div");
+          card.className = "card";
+          card.style.backgroundImage = `url('${player.image}')`;
+          card.innerHTML = `
+            <div class="overlay">
+              <div class="rank">${index + 1}</div>
+              <h2>${player.username} <span class="badge">${player.role}</span></h2>
+              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+              <div class="stats">
+                <p>Games Played: ${player.stats.games}</p>
+                <p>Win Rate: ${player.stats.winRate}%</p>
+                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+                <p>Goals + Assists: ${player.stats.totalContributions}</p>
+                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+                <p>Passes: ${player.stats.passes}</p>
+                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
 
-    section.classList.add('active');
-
-    if(section === playersSection) btnPlayers.classList.add('active');
-    else if(section === matchesSection) btnMatches.classList.add('active');
-    else if(section === leagueSection) btnLeague.classList.add('active');
-  }
-
-  btnPlayers.addEventListener('click', () => showSection(playersSection));
-  btnMatches.addEventListener('click', () => showSection(matchesSection));
-  btnLeague.addEventListener('click', () => showSection(leagueSection));
-
-  btnToggleDark.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-  });
-
-  // Fetch & render all data
-  async function fetchData() {
-    try {
-      const [playersRes, matchesRes] = await Promise.all([
-        fetch('/api/players'),
-        fetch('/api/matches')
-      ]);
-      if (!playersRes.ok) throw new Error('Failed to fetch players');
-      if (!matchesRes.ok) throw new Error('Failed to fetch matches');
-
-      const playersData = await playersRes.json();
-      const matchesData = await matchesRes.json();
-
-      renderPlayers(playersData);
-      renderMatches(matchesData);
-      renderFooter(playersData);
-    } catch (err) {
-      console.error(err);
-      alert(`Error loading data: ${err.message}`);
-    }
-  }
-
-  function renderPlayers(data) {
-    const imageMap = {
-      "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
-      "therealmandem7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/HakimiAchraf.jpg/960px-HakimiAchraf.jpg",
-      "LB_coyote2026": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZRhriaZakI4AdOjBbKSEo6skFj349dGaxFhwREYVXDrxyJ2gYXU8BtpB5cvCgRUT7HN7TIOLs9497TPyt07XYC0k9U5Q4mvdyq4OUQyWeLAzNSQdrAlW31L-6tEBqa77jfMgFxhnfhDQ/s1600/I+Belong+To+Jesus+-+Kaka.jpg",
-      "ElWey_10": "https://assets.goal.com/images/v3/blt83eec223151ab34a/120766b54cdc32e99f440a38842e9584f695a761.jpg?auto=webp&format=pjpg&width=3840&quality=60",
-      "MauryLeal11": "https://static01.nyt.com/images/2013/07/31/sports/soccer/31iht-soccer31/31iht-soccer31-superJumbo.jpg",
-      "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
-    };
-
-    const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
-    const container = document.getElementById("player-container");
-    container.innerHTML = '';
-
-    const players = data.members.map(player => ({
-      username: player.name,
-      proName: player.proName || player.name,
-      ovr: player.proOverall || 0,
-      role: player.favoritePosition || "forward",
-      image: imageMap[player.name] || '',
-      stats: {
-        games: player.gamesPlayed,
-        winRate: player.winRate,
-        goals: player.goals,
-        assists: player.assists,
-        shotSuccess: player.shotSuccessRate,
-        passes: `${player.passesMade} (${player.passSuccessRate}%)`,
-        rating: parseFloat(player.ratingAve),
-        tackles: `${player.tacklesMade} (${player.tackleSuccessRate}%)`
+        document.getElementById("footer").innerText =
+          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
+      } catch (err) {
+        document.getElementById("player-container").innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
+        console.error('Error fetching data:', err);
+        console.error('Error details:', err.stack);
       }
-    }));
+    }
 
-    players.sort((a,b) => b.stats.rating - a.stats.rating);
-
-    players.forEach((player, idx) => {
-      roleCount[player.role] = (roleCount[player.role] || 0) + 1;
-
-      const card = document.createElement("div");
-      card.className = "card";
-      card.style.backgroundImage = `url('${player.image}')`;
-      card.innerHTML = `
-        <div class="overlay">
-          <div class="rank">${idx + 1}</div>
-          <h2>${player.username} <span class="badge">${player.role}</span></h2>
-          <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
-          <div class="stats">
-            <p>Games Played: ${player.stats.games}</p>
-            <p>Win Rate: ${player.stats.winRate}%</p>
-            <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
-            <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
-            <p>Passes: ${player.stats.passes}</p>
-            <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
-          </div>
-        </div>
-      `;
-      container.appendChild(card);
-    });
-
-    // Save roleCount globally for footer usage
-    window.roleCount = roleCount;
-  }
-
-  function renderMatches(matches) {
-    const matchHistoryDiv = document.getElementById('match-history');
-    matchHistoryDiv.innerHTML = '';
-
-    matches.forEach(match => {
-      const date = new Date(match.timestamp * 1000);
-      const dateStr = date.toLocaleDateString();
-
-      const clubIds = Object.keys(match.clubs);
-      if (clubIds.length < 2) return; // skip incomplete
-
-      const homeClub = match.clubs[clubIds[0]];
-      const awayClub = match.clubs[clubIds[1]];
-
-      const homeTeam = homeClub?.details?.name || "Home";
-      const awayTeam = awayClub?.details?.name || "Away";
-      const homeScore = homeClub?.goals || "N/A";
-      const awayScore = awayClub?.goals || "N/A";
-
-      const matchDiv = document.createElement('div');
-      matchDiv.textContent = `Date: ${dateStr} | Score: ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`;
-      matchHistoryDiv.appendChild(matchDiv);
-    });
-  }
-
-  function renderFooter(data) {
-    // Using the roleCount saved during players rendering
-    const roleCount = window.roleCount || {};
-    document.getElementById("footer").innerText =
-      `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
-  }
-
-  // Load everything on start
-  fetchData();
-</script>
+    fetchPlayerStats();
+  </script>
 </body>
 </html>
