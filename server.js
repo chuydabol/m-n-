@@ -1,72 +1,44 @@
-<div id="match-history">
-  <h2>Match History</h2>
-  <button onclick="refreshMatches()">Refresh Matches</button>
-  <table border="1" cellspacing="0" cellpadding="5" style="width:100%; max-width:600px; margin-top:10px;">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Opponent</th>
-        <th>Score</th>
-        <th>Result</th>
-      </tr>
-    </thead>
-    <tbody id="match-table-body"></tbody>
-  </table>
-  <p id="status"></p>
-</div>
+const express = require('express');
+const fetch = require('node-fetch'); // version 2
+const path = require('path');
+const app = express();
+const PORT = 80;
 
-<script>
-  async function loadMatches() {
-    const status = document.getElementById('status');
-    status.textContent = 'Loading matches...';
+app.use(express.static(__dirname)); // serves index.html
 
-    try {
-      const res = await fetch('/api/matches');
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-      const matches = await res.json();
-
-      const tbody = document.getElementById('match-table-body');
-      tbody.innerHTML = '';
-
-      matches.forEach(match => {
-        const date = new Date(match.timestamp * 1000).toLocaleDateString();
-        const opponent = match.opponentName || 'Unknown';
-        const score = `${match.clubScore} - ${match.opponentScore}`;
-        const result = match.clubScore > match.opponentScore ? 'Win' :
-                       match.clubScore < match.opponentScore ? 'Loss' : 'Draw';
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${date}</td>
-          <td>${opponent}</td>
-          <td>${score}</td>
-          <td>${result}</td>
-        `;
-        tbody.appendChild(row);
-      });
-
-      status.textContent = `Loaded ${matches.length} matches.`;
-    } catch (err) {
-      status.textContent = `Error loading matches: ${err.message}`;
+// Dynamic API route
+app.get('/api/players', async (req, res) => {
+  console.log('Received request to /api/players');
+  try {
+    console.log('Fetching data from EA API...');
+    const response = await fetch('https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2491998', {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    console.log('EA API response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('EA API returned error status:', response.status);
+      return res.status(response.status).json({ error: 'EA API error', status: response.status });
     }
+    
+    const data = await response.json();
+    console.log('Successfully fetched data from EA API');
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching EA API:', err.message);
+    res.status(500).json({ error: 'Server error fetching data', details: err.message });
   }
+});
 
-  async function refreshMatches() {
-    const status = document.getElementById('status');
-    status.textContent = 'Refreshing matches...';
+// Serve index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-    try {
-      const res = await fetch('/api/matches/refresh');
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-
-      const data = await res.json();
-      status.textContent = `Refreshed ${data.count} matches. Reloading...`;
-      await loadMatches();
-    } catch (err) {
-      status.textContent = `Error refreshing matches: ${err.message}`;
-    }
-  }
-
-  // Load matches when page loads
-  loadMatches();
-</script>
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running at http://0.0.0.0:${PORT}`);
+});
