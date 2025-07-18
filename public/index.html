@@ -3,39 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pro Club Stats</title>
+  <title>Pro Club Stats with League</title>
   <style>
-    :root {
-      --bg-light: #f3f3f3;
-      --text-light: #333;
-      --card-bg-light: rgba(0, 0, 0, 0.6);
-      --badge-bg-light: #007bff;
-      --footer-text-light: #777;
-
-      --bg-dark: #121212;
-      --text-dark: #ddd;
-      --card-bg-dark: rgba(255, 255, 255, 0.15);
-      --badge-bg-dark: #3399ff;
-      --footer-text-dark: #aaa;
-    }
-
+    /* Reset & body */
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      background-color: #f3f3f3;
+    }
+
+    /* Sidebar styles */
+    #sidebar {
+      width: 220px;
+      background-color: #222;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding-top: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+    }
+
+    #sidebar button {
+      background: none;
+      border: none;
+      color: white;
+      text-align: left;
+      padding: 15px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border-left: 4px solid transparent;
+      transition: background-color 0.3s, border-left-color 0.3s;
+    }
+
+    #sidebar button:hover {
+      background-color: #444;
+    }
+
+    #sidebar button.active {
+      border-left-color: #007bff;
+      background-color: #007bff;
+    }
+
+    /* Content area */
+    #content {
+      flex: 1;
       padding: 20px;
-      background-color: var(--bg-light);
-      color: var(--text-light);
-      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-y: auto;
+      background-color: white;
     }
 
-    body.dark {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
+    /* Hide views by default */
+    .view {
+      display: none;
     }
 
-    h1, h2 {
+    .view.active {
+      display: block;
+    }
+
+    /* Your existing styles for cards and footer... */
+    h1 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
 
     .container {
@@ -55,23 +86,19 @@
       background-position: center;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       overflow: hidden;
-      transition: background-color 0.3s ease;
     }
 
-    .card .overlay {
+    .overlay {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: var(--card-bg-light);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
       padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      transition: background-color 0.3s ease;
-    }
-
-    body.dark .card .overlay {
-      background-color: var(--card-bg-dark);
     }
 
     .overlay h2 {
@@ -79,17 +106,12 @@
     }
 
     .badge {
-      background-color: var(--badge-bg-light);
+      background-color: #007bff;
       color: white;
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 12px;
       margin-left: 8px;
-      transition: background-color 0.3s ease;
-    }
-
-    body.dark .badge {
-      background-color: var(--badge-bg-dark);
     }
 
     .stats {
@@ -103,7 +125,8 @@
 
     .rank {
       position: absolute;
-      top: 10px; left: 10px;
+      top: 10px;
+      left: 10px;
       background-color: gold;
       color: black;
       font-weight: bold;
@@ -111,203 +134,99 @@
       border-radius: 50%;
       font-size: 16px;
       box-shadow: 0 0 5px rgba(0,0,0,0.3);
-      transition: background-color 0.3s ease;
     }
 
     footer {
       text-align: center;
       margin-top: 40px;
       font-size: 14px;
-      color: var(--footer-text-light);
-      transition: color 0.3s ease;
+      color: #777;
     }
 
-    body.dark footer {
-      color: var(--footer-text-dark);
+    /* League table styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
     }
 
-    #match-history {
-      max-width: 700px;
-      margin: 30px auto;
-      background: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.15);
-      color: #333;
-      font-family: monospace, monospace;
-      white-space: pre-wrap;
-      line-height: 1.4;
-      max-height: 300px;
-      overflow-y: auto;
-      transition: background-color 0.3s ease, color 0.3s ease;
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: center;
     }
 
-    body.dark #match-history {
-      background: #222;
-      color: #ddd;
-      box-shadow: 0 0 8px rgba(255,255,255,0.1);
-    }
-
-    /* Dark mode toggle button */
-    #dark-mode-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: var(--badge-bg-light);
+    th {
+      background-color: #007bff;
       color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      transition: background-color 0.3s ease;
-      z-index: 1000;
-    }
-
-    body.dark #dark-mode-toggle {
-      background: var(--badge-bg-dark);
     }
 
   </style>
 </head>
 <body>
-  <button id="dark-mode-toggle" aria-label="Toggle dark mode">🌙 Dark Mode</button>
+  <div id="sidebar">
+    <button class="active" data-view="players-view">Players & Matches</button>
+    <button data-view="league-view">League Table</button>
+    <!-- Add more buttons here as needed -->
+  </div>
 
-  <h1>Pro Clubs Player Stats</h1>
-  <div class="container" id="player-container"></div>
-  <footer id="footer"></footer>
+  <div id="content">
+    <!-- Players & Matches view -->
+    <section id="players-view" class="view active">
+      <h1>Pro Clubs Player Stats</h1>
+      <div class="container" id="player-container"></div>
+      <h1>Recent Matches</h1>
+      <div id="match-history"></div>
+      <footer id="footer"></footer>
+    </section>
 
-  <h2>Recent Match History</h2>
-  <div id="match-history">Loading matches...</div>
+    <!-- League Table view -->
+    <section id="league-view" class="view">
+      <h1>League Table</h1>
+      <table id="league-table">
+        <thead>
+          <tr>
+            <th>Position</th>
+            <th>Team</th>
+            <th>Points</th>
+            <th>Goal Difference</th>
+            <th>Wins</th>
+            <th>Draws</th>
+            <th>Losses</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- League teams go here -->
+        </tbody>
+      </table>
+    </section>
+  </div>
 
   <script>
-    // Dark mode toggle
-    const toggleBtn = document.getElementById('dark-mode-toggle');
+    // Sidebar button toggle logic
+    const buttons = document.querySelectorAll('#sidebar button');
+    const views = document.querySelectorAll('.view');
 
-    function setDarkMode(enabled) {
-      if (enabled) {
-        document.body.classList.add('dark');
-        toggleBtn.textContent = '☀️ Light Mode';
-        localStorage.setItem('darkMode', 'true');
-      } else {
-        document.body.classList.remove('dark');
-        toggleBtn.textContent = '🌙 Dark Mode';
-        localStorage.setItem('darkMode', 'false');
-      }
-    }
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        // Remove active from all buttons
+        buttons.forEach(btn => btn.classList.remove('active'));
+        // Hide all views
+        views.forEach(view => view.classList.remove('active'));
 
-    // Initialize dark mode from localStorage
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode === 'true') {
-      setDarkMode(true);
-    } else {
-      setDarkMode(false);
-    }
-
-    toggleBtn.addEventListener('click', () => {
-      const isDark = document.body.classList.contains('dark');
-      setDarkMode(!isDark);
+        // Activate clicked button and corresponding view
+        button.classList.add('active');
+        const viewId = button.getAttribute('data-view');
+        document.getElementById(viewId).classList.add('active');
+      });
     });
 
-    // Utility: format Unix timestamp (seconds) to readable date string
-    function formatDate(ts) {
-      const d = new Date(ts * 1000);
-      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
-    }
-
-    // Render players to the DOM
-    function renderPlayers(players) {
-      const container = document.getElementById("player-container");
-      container.innerHTML = '';
-      const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
-
-      players.forEach((player, index) => {
-        roleCount[player.role] = (roleCount[player.role] || 0) + 1;
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.style.backgroundImage = `url('${player.image}')`;
-        card.innerHTML = `
-          <div class="overlay">
-            <div class="rank">${index + 1}</div>
-            <h2>${player.username} <span class="badge">${player.role}</span></h2>
-            <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
-            <div class="stats">
-              <p>Games Played: ${player.stats.games}</p>
-              <p>Win Rate: ${player.stats.winRate}%</p>
-              <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
-              <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
-              <p>Passes: ${player.stats.passes}</p>
-              <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-
-      document.getElementById("footer").innerText =
-        `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
-    }
-
-    // Render matches to the DOM
-    function renderMatches(matches) {
-      const div = document.getElementById("match-history");
-      if (!matches.length) {
-        div.textContent = 'No match history available.';
-        return;
-      }
-
-      const lines = matches.map(m => {
-        // Using your data structure: timestamp, clubs with goals, etc.
-        const date = formatDate(m.timestamp || m.date || 0);
-        // Find home and away clubs (first two keys in clubs object)
-        const clubKeys = Object.keys(m.clubs || {});
-        const homeClub = m.clubs[clubKeys[0]];
-        const awayClub = m.clubs[clubKeys[1]];
-        const homeName = homeClub?.details?.name || 'Home';
-        const awayName = awayClub?.details?.name || 'Away';
-        const homeScore = homeClub?.goals || homeClub?.score || 0;
-        const awayScore = awayClub?.goals || awayClub?.score || 0;
-        return `Date: ${date}\nScore: ${homeName} ${homeScore} - ${awayScore} ${awayName}`;
-      });
-
-      div.textContent = lines.join('\n\n');
-    }
-
-    // Load matches from localStorage
-    function loadStoredMatches() {
-      const stored = localStorage.getItem('recentMatches');
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    }
-
-    // Save matches to localStorage
-    function saveStoredMatches(matches) {
-      localStorage.setItem('recentMatches', JSON.stringify(matches));
-    }
-
-    // Merge new matches with stored matches, avoiding duplicates by matchId
-    function mergeMatches(stored, fetched) {
-      const existingIds = new Set(stored.map(m => m.matchId));
-      const newUnique = fetched.filter(m => !existingIds.has(m.matchId));
-      return [...newUnique, ...stored].sort((a,b) => b.timestamp - a.timestamp);
-    }
-
-    // Main fetch function
-    async function fetchData() {
+    // --- Player and match code from before ---
+    async function fetchPlayerStats() {
       try {
-        // Fetch players
-        console.log('Fetching players...');
-        const playerRes = await fetch('/api/players');
-        if (!playerRes.ok) throw new Error('Failed to fetch players');
-        const playerData = await playerRes.json();
+        const res = await fetch('/api/players');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
 
         const imageMap = {
           "ChuyLeal133": "https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/f_auto/lc-prd/pq0ifjpu2kvgcdzrld97",
@@ -318,7 +237,8 @@
           "RC-_-Wheelie": "https://metro.co.uk/wp-content/uploads/2023/01/SEI_139827784-659a.jpg?quality=90&strip=all&w=646"
         };
 
-        const players = playerData.members.map(player => ({
+        const roleCount = { Midfielder: 0, Forward: 0, Defender: 0, Goalkeeper: 0 };
+        const players = data.members.map(player => ({
           username: player.name,
           proName: player.proName || player.name,
           ovr: player.proOverall || 0,
@@ -338,34 +258,117 @@
 
         players.sort((a, b) => b.stats.rating - a.stats.rating);
 
-        renderPlayers(players);
+        const container = document.getElementById("player-container");
+        container.innerHTML = ''; // clear old content
+        players.forEach((player, index) => {
+          roleCount[player.role] = (roleCount[player.role] || 0) + 1;
 
-        // Fetch matches
-        console.log('Fetching matches...');
-        const matchRes = await fetch('/api/matches');
-        if (!matchRes.ok) throw new Error('Failed to fetch matches');
-        const fetchedMatches = await matchRes.json();
+          const card = document.createElement("div");
+          card.className = "card";
+          card.style.backgroundImage = `url('${player.image}')`;
+          card.innerHTML = `
+            <div class="overlay">
+              <div class="rank">${index + 1}</div>
+              <h2>${player.username} <span class="badge">${player.role}</span></h2>
+              <p><strong>Pro Name:</strong> ${player.proName} (OVR ${player.ovr})</p>
+              <div class="stats">
+                <p>Games Played: ${player.stats.games}</p>
+                <p>Win Rate: ${player.stats.winRate}%</p>
+                <p>Goals: ${player.stats.goals} | Assists: ${player.stats.assists}</p>
+                <p>Shot Success Rate: ${player.stats.shotSuccess}%</p>
+                <p>Passes: ${player.stats.passes}</p>
+                <p>Rating: ${player.stats.rating} | Tackles: ${player.stats.tackles}</p>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
 
-        // Load stored matches
-        const storedMatches = loadStoredMatches();
+        document.getElementById("footer").innerText =
+          `Total Midfielders: ${roleCount.Midfielder || 0} | Forwards: ${roleCount.Forward || 0} | Defenders: ${roleCount.Defender || 0} | Goalkeepers: ${roleCount.Goalkeeper || 0}`;
 
-        // Merge without duplicates
-        const mergedMatches = mergeMatches(storedMatches, fetchedMatches);
-
-        // Save merged matches to localStorage
-        saveStoredMatches(mergedMatches);
-
-        // Render merged matches
-        renderMatches(mergedMatches);
+        // Also fetch and render matches
+        await fetchMatchHistory();
 
       } catch (err) {
-        console.error('Error fetching data:', err);
-        document.getElementById('player-container').innerHTML = `<p>Error: ${err.message}</p>`;
-        document.getElementById('match-history').textContent = `Error: ${err.message}`;
+        const container = document.getElementById("player-container");
+        container.innerHTML = `<p>Failed to fetch player stats: ${err.message}</p>`;
+        console.error(err);
       }
     }
 
-    fetchData();
+    async function fetchMatchHistory() {
+      try {
+        const res = await fetch('/api/matches');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const matches = await res.json();
+
+        const matchHistoryDiv = document.getElementById("match-history");
+        matchHistoryDiv.innerHTML = ''; // clear old matches
+
+        matches.forEach(match => {
+          const date = new Date(match.timestamp * 1000);
+          const dateStr = date.toLocaleDateString();
+          const homeTeam = match.homeTeam || 'Home';
+          const awayTeam = match.awayTeam || 'Away';
+          const homeScore = match.homeScore ?? 'N/A';
+          const awayScore = match.awayScore ?? 'N/A';
+
+          const matchDiv = document.createElement('div');
+          matchDiv.innerHTML = `<strong>Date:</strong> ${dateStr} | <strong>Score:</strong> ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`;
+          matchHistoryDiv.appendChild(matchDiv);
+        });
+      } catch (err) {
+        const matchHistoryDiv = document.getElementById("match-history");
+        matchHistoryDiv.innerHTML = `<p>Failed to fetch matches: ${err.message}</p>`;
+        console.error(err);
+      }
+    }
+
+    // --- League table data & render ---
+
+    // Sample league data structure
+    const leagueTeams = [
+      { name: "Royal Republic", points: 18, goalsFor: 25, goalsAgainst: 10, wins: 6, draws: 0, losses: 2 },
+      { name: "Cruz Azul XI", points: 20, goalsFor: 28, goalsAgainst: 12, wins: 6, draws: 2, losses: 0 },
+      { name: "FC Example", points: 15, goalsFor: 20, goalsAgainst: 15, wins: 4, draws: 3, losses: 1 },
+    ];
+
+    function renderLeagueTable() {
+      const tbody = document.querySelector("#league-table tbody");
+      tbody.innerHTML = '';
+
+      // Calculate goal difference for each team
+      leagueTeams.forEach(team => {
+        team.goalDifference = team.goalsFor - team.goalsAgainst;
+      });
+
+      // Sort by points desc, then goal difference desc
+      leagueTeams.sort((a, b) => {
+        if (b.points === a.points) {
+          return b.goalDifference - a.goalDifference;
+        }
+        return b.points - a.points;
+      });
+
+      leagueTeams.forEach((team, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${team.name}</td>
+          <td>${team.points}</td>
+          <td>${team.goalDifference}</td>
+          <td>${team.wins}</td>
+          <td>${team.draws}</td>
+          <td>${team.losses}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Init
+    fetchPlayerStats();
+    renderLeagueTable();
   </script>
 </body>
 </html>
