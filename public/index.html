@@ -2,116 +2,119 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pro Clubs Player Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pro Clubs Stats</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f0f0;
+      background-color: #f4f4f4;
       margin: 0;
       padding: 20px;
-      color: #333;
     }
-    h1, h2 {
+
+    h1 {
       text-align: center;
+      color: #222;
     }
-    #players, #matches {
-      max-width: 900px;
-      margin: 20px auto;
+
+    .section {
+      max-width: 800px;
+      margin: 40px auto;
       background: white;
-      padding: 15px;
-      border-radius: 8px;
+      padding: 20px;
+      border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .player-card, .match {
+
+    .player-card, .match-card {
       border-bottom: 1px solid #ddd;
-      padding: 10px 0;
+      padding: 12px 0;
     }
-    .player-card:last-child, .match:last-child {
+
+    .player-card:last-child, .match-card:last-child {
       border-bottom: none;
     }
-    .player-card h2 {
-      margin: 0 0 8px 0;
-      font-size: 1.2rem;
-    }
-    .match p {
-      margin: 4px 0;
+
+    .player-card h3 {
+      margin: 0 0 6px;
     }
   </style>
 </head>
 <body>
-  <h1>Pro Clubs Player Stats</h1>
+  <h1>Pro Clubs Dashboard</h1>
 
-  <div id="players">
-    <h2>Loading players...</h2>
+  <div class="section">
+    <h2>Player Stats</h2>
+    <div id="players">Loading players...</div>
   </div>
 
-  <div id="matches">
-    <h2>Loading matches...</h2>
+  <div class="section">
+    <h2>Match History</h2>
+    <div id="matches">Loading matches...</div>
   </div>
 
   <script>
-    async function loadData() {
+    async function fetchPlayers() {
       try {
-        // Fetch player stats
-        const playerRes = await fetch('/api/players');
-        const playerData = await playerRes.json();
-        const players = Object.values(playerData.members || {});
+        const res = await fetch('/api/players');
+        if (!res.ok) throw new Error(`Failed to fetch players: ${res.status}`);
+        const data = await res.json();
 
+        const players = data.members || {};
         const container = document.getElementById('players');
-        container.innerHTML = '<h2>Players</h2>';
+        container.innerHTML = '';
 
-        if (players.length === 0) {
-          container.innerHTML += '<p>No player data found.</p>';
-        } else {
-          players.forEach((player) => {
-            const card = document.createElement('div');
-            card.className = 'player-card';
-            card.innerHTML = `
-              <h3>${player.name}</h3>
-              <p>Overall Rating: ${player.proOverall || 'N/A'}</p>
-              <p>Games Played: ${player.gamesPlayed || 0}</p>
-              <p>Goals: ${player.goals || 0} | Assists: ${player.assists || 0}</p>
-              <p>Win Rate: ${player.winRate || 0}%</p>
-            `;
-            container.appendChild(card);
-          });
-        }
-
-        // Fetch match history
-        const matchRes = await fetch('/api/matches');
-        const matches = await matchRes.json();
-
-        const matchContainer = document.getElementById('matches');
-        matchContainer.innerHTML = '<h2>Recent Matches</h2>';
-
-        if (!matches || matches.length === 0) {
-          matchContainer.innerHTML += '<p>No match data found.</p>';
-        } else {
-          matches.slice(0, 5).forEach((match) => {
-            const div = document.createElement('div');
-            div.className = 'match';
-            // Some matches might not have clubs data for your clubId, fallback accordingly
-            const clubData = match.clubs && match.clubs['2491998'] ? match.clubs['2491998'] : {};
-            div.innerHTML = `
-              <p><strong>Date:</strong> ${new Date(match.timestamp * 1000).toLocaleDateString()}</p>
-              <p><strong>Opponent:</strong> ${match.opponentName || 'Unknown'}</p>
-              <p><strong>Result:</strong> ${clubData.matchResult || 'N/A'}</p>
-              <p><strong>Score:</strong> ${match.clubScore} - ${match.opponentScore}</p>
-              <hr/>
-            `;
-            matchContainer.appendChild(div);
-          });
-        }
-
+        Object.values(players).forEach(player => {
+          const div = document.createElement('div');
+          div.className = 'player-card';
+          div.innerHTML = `
+            <h3>${player.name}</h3>
+            <p>Rating: ${player.overallRating}</p>
+            <p>Goals: ${player.goals}</p>
+            <p>Assists: ${player.assists}</p>
+          `;
+          container.appendChild(div);
+        });
       } catch (err) {
-        console.error('Error loading data:', err);
-        document.getElementById('players').innerHTML = '<p>Error loading players.</p>';
-        document.getElementById('matches').innerHTML = '<p>Error loading matches.</p>';
+        console.error('Error loading players:', err);
+        document.getElementById('players').innerText = 'Error loading player stats.';
       }
     }
 
-    loadData();
+    async function fetchMatches() {
+      try {
+        const res = await fetch('/api/matches');
+        if (!res.ok) throw new Error(`Failed to fetch matches: ${res.status}`);
+        const matches = await res.json();
+
+        const container = document.getElementById('matches');
+        container.innerHTML = '';
+
+        matches.forEach(match => {
+          const div = document.createElement('div');
+          div.className = 'match-card';
+          const date = new Date(match.timestamp * 1000).toLocaleDateString();
+
+          const homeClub = match.clubs[match.home]?.name || 'Home';
+          const awayClub = match.clubs[match.away]?.name || 'Away';
+
+          div.innerHTML = `
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Score:</strong> ${homeClub} ${match.homeGoals} - ${match.awayGoals} ${awayClub}</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error('Error loading matches:', err);
+        document.getElementById('matches').innerText = 'Error loading match history.';
+      }
+    }
+
+    // On load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchPlayers();
+      fetchMatches();
+    });
   </script>
 </body>
 </html>
