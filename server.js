@@ -4,36 +4,54 @@ const fetch = require('node-fetch');
 const db = require('./firebase');
 
 const app = express();
-const PORT = 80;
+const PORT = process.env.PORT || 80;
 
-// Serve static files (HTML, CSS, JS)
+// Middleware: log each request
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
+
+// Serve static files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Fetch player stats
+// Simple root test route
+app.get('/', (req, res) => {
+  res.send('Server is up and running!');
+});
+
+// API route: get players
 app.get('/api/players', async (req, res) => {
   try {
     const response = await fetch(
       'https://proclubs.ea.com/api/fc/club/members/stats?platform=common-gen5&clubId=2491998'
     );
+    if (!response.ok) {
+      console.error('EA API error:', response.status);
+      return res.status(502).json({ error: 'EA API unreachable' });
+    }
     const data = await response.json();
-    console.log('Fetched player data:', Object.keys(data.members || {}));
     res.json(data);
   } catch (err) {
-    console.error('Error fetching player stats:', err);
+    console.error('Error fetching players:', err);
     res.status(500).json({ error: 'Failed to fetch players' });
   }
 });
 
-// Fetch and optionally store matches in Firebase
+// API route: get matches and save to Firebase
 app.get('/api/matches', async (req, res) => {
   try {
     const url =
       'https://proclubs.ea.com/api/fc/clubs/matches?matchType=leagueMatch&platform=common-gen5&clubIds=2491998';
     const response = await fetch(url);
+    if (!response.ok) {
+      console.error('EA Matches API error:', response.status);
+      return res.status(502).json({ error: 'EA Matches API unreachable' });
+    }
     const matches = await response.json();
     console.log(`Fetched ${matches.length} matches`);
 
-    // OPTIONAL: Save matches to Firebase (can comment out if not ready)
+    // Save matches to Firebase
     const batch = db.batch();
     matches.forEach((match) => {
       const matchRef = db.collection('matches').doc(match.matchId.toString());
@@ -48,10 +66,11 @@ app.get('/api/matches', async (req, res) => {
   }
 });
 
-// Serve index.html for all other routes
+// Catch-all route: serve index.html for frontend routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start the server
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
